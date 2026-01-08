@@ -8,7 +8,7 @@ interface SectionRendererProps {
   onChange: (updates: Partial<CreditMemoData>) => void;
 }
 
-const getNested = (obj: any, path: string) => path.split('.').reduce((o, i) => (o ? o[i] : ''), obj);
+const getNested = (obj: any, path: string) => path.split('.').reduce((o, i) => (o && typeof o === 'object' ? o[i] : undefined), obj) ?? '';
 
 const Input = ({ 
   label, 
@@ -331,7 +331,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
                <span className="text-[10px] font-black uppercase text-tdgreen-light/80 tracking-widest">LCC Approval</span>
                <input 
                  className="bg-transparent text-white text-xl font-bold w-full outline-none border-b border-white/20 focus:border-white transition-all" 
-                 value={data.financialInfo.raroc.lccStatus || ''} 
+                 value={getNested(data, 'financialInfo.raroc.lccStatus')} 
                  maxLength={250}
                  onChange={e => setNested('financialInfo.raroc.lccStatus', e.target.value)} 
                />
@@ -341,7 +341,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
                <input 
                  type="number"
                  className="bg-transparent text-white text-4xl font-black w-full outline-none" 
-                 value={data.financialInfo.raroc.economicRaroc} 
+                 value={getNested(data, 'financialInfo.raroc.economicRaroc')} 
                  onChange={e => setNested('financialInfo.raroc.economicRaroc', Number(e.target.value))} 
                />
             </div>
@@ -350,7 +350,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
                <input 
                  type="number"
                  className="bg-transparent text-white text-4xl font-black w-full outline-none" 
-                 value={data.financialInfo.raroc.relationshipRaroc} 
+                 value={getNested(data, 'financialInfo.raroc.relationshipRaroc')} 
                  onChange={e => setNested('financialInfo.raroc.relationshipRaroc', Number(e.target.value))} 
                />
             </div>
@@ -361,7 +361,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
                  <input 
                    type="number"
                    className="bg-transparent text-white text-xl font-bold w-full outline-none" 
-                   value={data.financialInfo.raroc.economicCapital} 
+                   value={getNested(data, 'financialInfo.raroc.economicCapital')} 
                    onChange={e => setNested('financialInfo.raroc.economicCapital', Number(e.target.value))} 
                  />
                </div>
@@ -569,8 +569,8 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
             <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tight">Credit Application Memo</h1>
             <div className="flex justify-between items-end text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">
               <span>Institution: TD Bank N.A.</span>
-              <span>Ref ID: {data.primaryBorrower.borrowerName?.slice(0, 3).toUpperCase() || 'LNX'}-{Math.floor(Math.random() * 9000) + 1000}</span>
-              <span>Originating Office: {data.primaryBorrower.originatingOffice || "N/A"}</span>
+              <span>Ref ID: {getNested(data, 'primaryBorrower.borrowerName')?.slice(0, 3).toUpperCase() || 'LNX'}-{Math.floor(Math.random() * 9000) + 1000}</span>
+              <span>Originating Office: {getNested(data, 'primaryBorrower.originatingOffice') || "N/A"}</span>
             </div>
           </div>
 
@@ -579,7 +579,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
             <h2 className="text-2xl font-black bg-slate-900 text-white px-6 py-3 uppercase tracking-widest shadow-lg">1. Executive Summary & Recommendation</h2>
             <div className="prose prose-slate max-w-none">
               <div className="text-lg text-tdgreen font-bold italic border-l-8 border-tdgreen pl-8 py-6 bg-tdgreen-light/20 rounded-r-3xl whitespace-pre-wrap">
-                {data.analysis.justification.recommendation || "Synthesis pending."}
+                {getNested(data, 'analysis.justification.recommendation') || "Synthesis pending."}
               </div>
             </div>
           </section>
@@ -588,12 +588,12 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
           <section className="space-y-6">
             <h2 className="text-2xl font-black bg-slate-100 text-slate-900 px-6 py-3 uppercase tracking-widest border-l-[12px] border-tdgreen">2. Borrower Profile</h2>
             <div className="grid grid-cols-2 gap-x-16 gap-y-2">
-              <PreviewRow label="Borrower Name" value={data.primaryBorrower.borrowerName} />
-              <PreviewRow label="Group" value={data.primaryBorrower.group} />
-              <PreviewRow label="Account Class" value={data.primaryBorrower.accountClassification} />
-              <PreviewRow label="Customer Since" value={data.counterparty.info.customerSince} />
-              <PreviewRow label="Legal Address" value={data.counterparty.info.address} />
-              <PreviewRow label="Established" value={data.counterparty.info.established} />
+              <PreviewRow label="Borrower Name" value={getNested(data, 'primaryBorrower.borrowerName')} />
+              <PreviewRow label="Group" value={getNested(data, 'primaryBorrower.group')} />
+              <PreviewRow label="Account Class" value={getNested(data, 'primaryBorrower.accountClassification')} />
+              <PreviewRow label="Customer Since" value={getNested(data, 'counterparty.info.customerSince')} />
+              <PreviewRow label="Legal Address" value={getNested(data, 'counterparty.info.address')} />
+              <PreviewRow label="Established" value={getNested(data, 'counterparty.info.established')} />
             </div>
             
             <div className="grid grid-cols-2 gap-8 mt-6">
@@ -603,8 +603,8 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
                {wrapCheckbox("Policy Exception", "primaryBorrower.tdsPolicyException")}
             </div>
 
-            <PreviewNarrative label="Company Description" value={data.analysis.overview.companyDesc} />
-            <PreviewNarrative label="Recent Events" value={data.analysis.overview.recentEvents} />
+            <PreviewNarrative label="Company Description" value={getNested(data, 'analysis.overview.companyDesc')} />
+            <PreviewNarrative label="Recent Events" value={getNested(data, 'analysis.overview.recentEvents')} />
           </section>
 
           {/* Section 3: Credit Facilities */}
@@ -623,13 +623,13 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
                 <tbody className="divide-y divide-slate-100">
                   <tr className="hover:bg-tdgreen-light/5">
                     <td className="px-8 py-5 font-bold text-slate-500">Total Authorized Facilities</td>
-                    <td className="px-8 py-5 text-right font-black">${data.creditPosition.previousAuthorization?.toLocaleString()}</td>
-                    <td className="px-8 py-5 text-right font-black text-tdgreen">${data.creditPosition.creditRequested?.toLocaleString()}</td>
+                    <td className="px-8 py-5 text-right font-black">${getNested(data, 'creditPosition.previousAuthorization')?.toLocaleString()}</td>
+                    <td className="px-8 py-5 text-right font-black text-tdgreen">${getNested(data, 'creditPosition.creditRequested')?.toLocaleString()}</td>
                   </tr>
                   <tr className="hover:bg-tdgreen-light/5">
                     <td className="px-8 py-5 font-bold text-slate-500">Trading Line / Hedging</td>
                     <td className="px-8 py-5 text-right font-black">N/A</td>
-                    <td className="px-8 py-5 text-right font-black">${data.creditPosition.tradingLine?.toLocaleString()}</td>
+                    <td className="px-8 py-5 text-right font-black">${getNested(data, 'creditPosition.tradingLine')?.toLocaleString()}</td>
                   </tr>
                 </tbody>
               </table>
@@ -638,21 +638,21 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
             <div className="grid grid-cols-2 gap-12 mt-8">
                <div className="space-y-4">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Facility Terms</h4>
-                  <PreviewRow label="Instruments" value={data.facilityDetails.options.instruments} />
-                  <PreviewRow label="Tenor" value={data.facilityDetails.terms.tenor} />
-                  <PreviewRow label="Maturity" value={data.facilityDetails.terms.maturity} />
-                  <PreviewRow label="Currencies" value={data.facilityDetails.options.currencies} />
+                  <PreviewRow label="Instruments" value={getNested(data, 'facilityDetails.options.instruments')} />
+                  <PreviewRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} />
+                  <PreviewRow label="Maturity" value={getNested(data, 'facilityDetails.terms.maturity')} />
+                  <PreviewRow label="Currencies" value={getNested(data, 'facilityDetails.options.currencies')} />
                </div>
                <div className="space-y-4">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pricing & Fees</h4>
-                  <PreviewRow label="Margin" value={data.facilityDetails.rates.margin} />
-                  <PreviewRow label="Facility Fee" value={data.facilityDetails.rates.fee} />
-                  <PreviewRow label="All-in Drawn" value={data.facilityDetails.rates.allIn} />
-                  <PreviewRow label="Upfront Fees" value={data.facilityDetails.rates.upfront} />
+                  <PreviewRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} />
+                  <PreviewRow label="Facility Fee" value={getNested(data, 'facilityDetails.rates.fee')} />
+                  <PreviewRow label="All-in Drawn" value={getNested(data, 'facilityDetails.rates.allIn')} />
+                  <PreviewRow label="Upfront Fees" value={getNested(data, 'facilityDetails.rates.upfront')} />
                </div>
             </div>
 
-            <PreviewNarrative label="Purpose & Adjudication Considerations" value={data.purpose.adjudicationConsiderations} />
+            <PreviewNarrative label="Purpose & Adjudication Considerations" value={getNested(data, 'purpose.adjudicationConsiderations')} />
           </section>
 
           {/* Section 4: Risk & Financials */}
@@ -662,19 +662,19 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
             <div className="grid grid-cols-4 gap-6">
               <div className="p-8 bg-tdgreen text-white rounded-[2.5rem] shadow-xl text-center ring-4 ring-tdgreen/10">
                 <div className="text-[9px] font-black uppercase tracking-widest text-tdgreen-light mb-2">Econ RAROC</div>
-                <div className="text-4xl font-black">{data.financialInfo.raroc.economicRaroc}%</div>
+                <div className="text-4xl font-black">{getNested(data, 'financialInfo.raroc.economicRaroc')}%</div>
               </div>
               <div className="p-8 bg-slate-900 text-white rounded-[2.5rem] shadow-xl text-center">
                 <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Rel RAROC</div>
-                <div className="text-4xl font-black">{data.financialInfo.raroc.relationshipRaroc}%</div>
+                <div className="text-4xl font-black">{getNested(data, 'financialInfo.raroc.relationshipRaroc')}%</div>
               </div>
               <div className="p-8 border-2 border-slate-200 rounded-[2.5rem] text-center">
                 <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Borrower BRR</div>
-                <div className="text-4xl font-black text-slate-900">{data.counterparty.ratings[0]?.brr || "3+"}</div>
+                <div className="text-4xl font-black text-slate-900">{getNested(data, 'counterparty.ratings.0.brr') || "3+"}</div>
               </div>
               <div className="p-8 border-2 border-slate-200 rounded-[2.5rem] text-center">
                 <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Risk Analyst RA</div>
-                <div className="text-4xl font-black text-tdgreen">{data.counterparty.ratings[0]?.ra || "BBB"}</div>
+                <div className="text-4xl font-black text-tdgreen">{getNested(data, 'counterparty.ratings.0.ra') || "BBB"}</div>
               </div>
             </div>
 
@@ -690,9 +690,9 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
                </div>
             </div>
 
-            <PreviewNarrative label="Financial Analysis Narrative" value={data.analysis.financial.moodyAnalysis} />
-            <PreviewNarrative label="Leverage Analysis" value={data.analysis.leverage} />
-            <PreviewNarrative label="Sensitivity: Downside Case" value={data.analysis.sensitivity.downsideCase} />
+            <PreviewNarrative label="Financial Analysis Narrative" value={getNested(data, 'analysis.financial.moodyAnalysis')} />
+            <PreviewNarrative label="Leverage Analysis" value={getNested(data, 'analysis.leverage')} />
+            <PreviewNarrative label="Sensitivity: Downside Case" value={getNested(data, 'analysis.sensitivity.downsideCase')} />
           </section>
 
           {/* Section 5: Documentation & Compliance */}
@@ -701,9 +701,9 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
             
             <div className="grid grid-cols-2 gap-12">
                <div className="space-y-2">
-                  <PreviewRow label="Agreement Type" value={data.documentation.agreementType} />
-                  <PreviewRow label="Jurisdiction" value={data.documentation.jurisdiction} />
-                  <PreviewRow label="Agreement Date" value={data.documentation.date} />
+                  <PreviewRow label="Agreement Type" value={getNested(data, 'documentation.agreementType')} />
+                  <PreviewRow label="Jurisdiction" value={getNested(data, 'documentation.jurisdiction')} />
+                  <PreviewRow label="Agreement Date" value={getNested(data, 'documentation.date')} />
                </div>
                <div className="space-y-4">
                   {wrapCheckbox("Waiver of Jury Trial", "documentation.waiverJuryTrial")}
@@ -712,8 +712,8 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
             </div>
 
             <div className="grid grid-cols-2 gap-8 mt-6">
-               <PreviewNarrative label="Financial & Negative Covenants" value={data.documentation.negativeCovenants} />
-               <PreviewNarrative label="Events of Default" value={data.documentation.eventsOfDefault} />
+               <PreviewNarrative label="Financial & Negative Covenants" value={getNested(data, 'documentation.negativeCovenants')} />
+               <PreviewNarrative label="Events of Default" value={getNested(data, 'documentation.eventsOfDefault')} />
             </div>
           </section>
 
@@ -726,7 +726,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
                 </div>
                 <div className="text-right">
                    <div className="text-5xl font-black text-tdgreen italic uppercase">Approved</div>
-                   <div className="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-widest">Status: {data.financialInfo.raroc.lccStatus}</div>
+                   <div className="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-widest">Status: {getNested(data, 'financialInfo.raroc.lccStatus')}</div>
                 </div>
              </div>
 
@@ -734,15 +734,15 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, onChan
                 <div className="space-y-6">
                    <div className="h-1 bg-slate-200 w-full mb-10"></div>
                    <div>
-                      <div className="text-lg font-black text-slate-900 uppercase">{data.compliance.signOff.name || "Signatory Required"}</div>
-                      <div className="text-xs font-black text-slate-400 uppercase tracking-widest">{data.compliance.signOff.title}</div>
+                      <div className="text-lg font-black text-slate-900 uppercase">{getNested(data, 'compliance.signOff.name') || "Signatory Required"}</div>
+                      <div className="text-xs font-black text-slate-400 uppercase tracking-widest">{getNested(data, 'compliance.signOff.title')}</div>
                       <div className="text-[10px] font-black text-tdgreen mt-4 uppercase">Primary Relationship Manager</div>
                    </div>
                 </div>
                 <div className="space-y-6">
                    <div className="h-1 bg-slate-200 w-full mb-10"></div>
                    <div>
-                      <div className="text-lg font-black text-slate-900 uppercase">{data.compliance.signOff.approver || "Senior Adjudicator Required"}</div>
+                      <div className="text-lg font-black text-slate-900 uppercase">{getNested(data, 'compliance.signOff.approver') || "Senior Adjudicator Required"}</div>
                       <div className="text-xs font-black text-slate-400 uppercase tracking-widest">VP, Senior Credit Officer</div>
                       <div className="text-[10px] font-black text-tdgreen mt-4 uppercase">Risk Management - High Corporate</div>
                    </div>
