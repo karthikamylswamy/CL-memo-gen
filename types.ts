@@ -14,6 +14,14 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+export interface PublicRating {
+  agency: string;
+  issuerRating: string;
+  seniorUnsecured: string;
+  outlook: string;
+  updatedAt: string;
+}
+
 export interface CreditMemoData {
   primaryBorrower: {
     borrowerName: string;
@@ -27,6 +35,7 @@ export interface CreditMemoData {
     covenantLite: boolean;
     weakUnderwriting: boolean;
     tdsPolicyException: boolean;
+    additionalComments: string;
   };
   purpose: {
     businessPurpose: string;
@@ -37,6 +46,7 @@ export interface CreditMemoData {
       financialCovenants: boolean;
       maturityDates: boolean;
     };
+    additionalComments: string;
   };
   creditPosition: {
     previousAuthorization: number;
@@ -45,6 +55,7 @@ export interface CreditMemoData {
     committedOverOneYear: number;
     totalExcludingTrading: number;
     tradingLine: number;
+    additionalComments: string;
   };
   groupExposure: {
     entity: string;
@@ -63,6 +74,7 @@ export interface CreditMemoData {
       relationshipRaroc: number;
       economicCapital: number;
     };
+    additionalComments: string;
   };
   reviewDates: {
     newAnnualDate: string;
@@ -85,8 +97,14 @@ export interface CreditMemoData {
     };
   };
   riskAssessment: {
-    summary: { ratings: string; analyst: string; fileName: string };
-    publicRatings: { agency: string; rating: string; notes: string; outlook: string; updated: string }[];
+    borrowerRating: {
+      proposedBrr: string;
+      currentBrr: string;
+      riskAnalyst: string;
+      newRaPolicy: string;
+      raPolicyModel: string;
+    };
+    publicRatings: PublicRating[];
     details: {
       tdSic: string;
       industryRisk: string;
@@ -99,6 +117,7 @@ export interface CreditMemoData {
       governanceRisk: string;
       withinLimits: boolean;
     };
+    additionalComments: string;
   };
   facilityDetails: {
     summaries: any[];
@@ -108,6 +127,7 @@ export interface CreditMemoData {
     terms: { tenor: string; maturity: string; extension: string; termOut: string };
     repayment: { amortizing: boolean; comments: string };
     prepayment: { permitted: boolean; comments: string };
+    additionalComments: string;
   };
   documentation: {
     agreementType: string;
@@ -119,9 +139,11 @@ export interface CreditMemoData {
     waiverJuryTrial: boolean;
     negativeCovenants: string;
     positiveCovenants: string;
-    financialCovenants: any[];
+    financialCovenants: string;
     eventsOfDefault: string;
     reportingReqs: string;
+    fundingConditions: string;
+    additionalComments: string;
   };
   analysis: {
     overview: { companyDesc: string; recentEvents: string; sourcesUses: string; financingPlan: string };
@@ -129,10 +151,12 @@ export interface CreditMemoData {
     leverage: string;
     sensitivity: { baseCase: string; downsideCase: string };
     justification: { mraOutput: string; peerComp: string; fundamentals: string; fcf: string; recommendation: string };
+    additionalComments: string;
   };
   compliance: {
     signOff: { name: string; title: string; date: string; approver: string };
     legal: { declarationInterest: string; directors: string; illegalTying: string };
+    additionalComments: string;
   };
   fieldSources?: Record<string, string>;
   [key: string]: any;

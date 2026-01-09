@@ -12,6 +12,21 @@ import { processDocumentWithAgents } from './services/agentService';
 import { exportToWord } from './services/exportService';
 import * as db from './services/dbService';
 
+// Deep merge helper to prevent nested undefined properties when merging AI responses
+const deepMerge = (target: any, source: any) => {
+  const output = { ...target };
+  if (source && typeof source === 'object') {
+    Object.keys(source).forEach(key => {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        output[key] = deepMerge(target[key] || {}, source[key]);
+      } else {
+        output[key] = source[key];
+      }
+    });
+  }
+  return output;
+};
+
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<SectionKey>('borrower_details');
   const [data, setData] = useState<CreditMemoData>(INITIAL_DATA);
@@ -70,16 +85,14 @@ const App: React.FC = () => {
     try {
       const { data: extractedData, fieldSources } = await processDocumentWithAgents(files);
       
-      const newData = {
-        ...data,
-        ...extractedData,
-        fieldSources: {
-          ...(data.fieldSources || {}),
-          ...fieldSources
-        }
+      // Use deep merge to prevent overwriting missing nested properties (like overview) with undefined
+      const newData = deepMerge(data, extractedData);
+      newData.fieldSources = {
+        ...(data.fieldSources || {}),
+        ...(fieldSources || {})
       };
       
-      setData(newData);
+      setData(newData as CreditMemoData);
       setExtractedCount(Object.keys(fieldSources).length);
     } catch (error) {
       console.error("AI extraction error:", error);
@@ -167,8 +180,17 @@ const App: React.FC = () => {
             </div>
             
             <div className="mt-10 flex justify-end gap-5 pb-24">
+              {activeSection === 'document_preview' && (
+                <button 
+                  onClick={() => exportToWord(data)}
+                  className="flex items-center gap-3 px-8 py-3 bg-tdgreen text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-tdgreen/20 hover:scale-105 active:scale-95 transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  Download Word Memo
+                </button>
+              )}
               <button 
-                className="px-10 py-3 rounded-2xl bg-tdgreen text-white hover:bg-tdgreen-dark shadow-lg shadow-tdgreen/10 font-bold text-sm"
+                className="px-10 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-lg shadow-slate-200/20 font-bold text-sm"
                 onClick={() => alert("Workspace saved.")}
               >
                 Force Save

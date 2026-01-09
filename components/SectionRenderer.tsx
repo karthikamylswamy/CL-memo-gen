@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { CreditMemoData, SectionKey, SourceFile } from '../types';
+import { CreditMemoData, SectionKey, SourceFile, PublicRating } from '../types';
 
 interface SectionRendererProps {
   section: SectionKey;
@@ -169,20 +169,32 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     </label>
   );
 
-  const PreviewRow = ({ label, value }: { label: string, value: any }) => (
-    <div className="flex border-b border-slate-100 py-3 text-sm">
-      <span className="w-1/3 text-slate-400 font-bold uppercase tracking-[0.1em] text-[10px]">{label}:</span>
-      <span className="w-2/3 font-black text-slate-800">{value || "N/A"}</span>
-    </div>
-  );
-
-  const PreviewNarrative = ({ label, value }: { label: string, value: string }) => (
-    <div className="space-y-2 mt-4">
-      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</div>
-      <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap bg-[#fcfdfc] border border-tdgreen/10 p-6 rounded-2xl shadow-sm italic">
-        {value || "No information provided."}
+  const PreviewRow = ({ label, value }: { label: string, value: any }) => {
+    const displayValue = value === true ? "YES" : value === false ? "NO" : (value || "N/A");
+    return (
+      <div className="flex border-b border-slate-50 py-3 text-sm">
+        <span className="w-1/3 text-slate-400 font-bold uppercase tracking-[0.1em] text-[10px]">{label}:</span>
+        <span className="w-2/3 font-black text-slate-800 break-words">{displayValue}</span>
       </div>
-    </div>
+    );
+  };
+
+  const PreviewTextArea = ({ label, value }: { label: string, value: string }) => {
+    if (!value) return null;
+    return (
+      <div className="py-4">
+        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{label}</div>
+        <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap bg-slate-50 p-4 rounded-xl border border-slate-100">
+          {value}
+        </div>
+      </div>
+    );
+  };
+
+  const PreviewHeader = ({ title }: { title: string }) => (
+    <h2 className="text-xl font-black bg-slate-900 text-white px-6 py-3 uppercase tracking-widest mb-4 mt-8 first:mt-0">
+      {title}
+    </h2>
   );
 
   const Header = ({ title }: { title: string }) => (
@@ -235,11 +247,6 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                       {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type.split('/')[1].toUpperCase()}
                     </p>
                   </div>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                    selectedFile?.id === file.id ? 'bg-white/20' : 'bg-slate-50 text-slate-300 opacity-0 group-hover:opacity-100'
-                  }`}>
-                    →
-                  </div>
                 </button>
               ))
             )}
@@ -252,35 +259,16 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[200px]">
                     Previewing: {selectedFile.name}
                   </span>
-                  <a 
-                    href={selectedFile.dataUrl} 
-                    download={selectedFile.name}
-                    className="text-tdgreen hover:text-tdgreen-dark text-[10px] font-black uppercase tracking-widest flex items-center gap-1"
-                  >
-                    Download Original
-                  </a>
+                  <a href={selectedFile.dataUrl} download={selectedFile.name} className="text-tdgreen hover:text-tdgreen-dark text-[10px] font-black uppercase tracking-widest">Download</a>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  {selectedFile.type.includes('image') ? (
-                    <div className="h-full flex items-center justify-center p-8">
-                      <img src={selectedFile.dataUrl} alt="Source Preview" className="max-w-full max-h-full rounded-lg shadow-2xl" />
-                    </div>
-                  ) : selectedFile.type.includes('pdf') ? (
-                    <embed src={selectedFile.dataUrl} type="application/pdf" width="100%" height="100%" />
-                  ) : (
-                    <div className="h-full flex items-center justify-center p-12 text-center flex-col gap-4">
-                      <div className="text-4xl">📎</div>
-                      <p className="text-sm font-bold text-slate-500">Preview not available for this file type.</p>
-                      <a href={selectedFile.dataUrl} download={selectedFile.name} className="px-6 py-2 bg-tdgreen text-white rounded-xl text-xs font-black uppercase tracking-widest">Download to View</a>
-                    </div>
-                  )}
+                   <embed src={selectedFile.dataUrl} width="100%" height="100%" />
                 </div>
               </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center p-20 text-center text-slate-400">
                 <div className="text-6xl mb-6 opacity-20">📂</div>
                 <p className="text-sm font-black uppercase tracking-widest">Select a document to preview</p>
-                <p className="text-xs mt-2 max-w-[200px]">Click any uploaded file in the list to examine its content.</p>
               </div>
             )}
           </div>
@@ -289,7 +277,6 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     );
   }
 
-  // Handle other sections as before...
   switch (section) {
     case 'borrower_details':
       return (
@@ -308,13 +295,16 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             {wrapCheckbox("Weak Underwriting Loan", "primaryBorrower.weakUnderwriting")}
             {wrapCheckbox("TDS Policy Exception", "primaryBorrower.tdsPolicyException")}
           </div>
+          <div className="col-span-full mt-6">
+            {wrapTextArea("Additional Comments", "primaryBorrower.additionalComments")}
+          </div>
         </div>
       );
 
     case 'purpose':
       return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {wrapTextArea("Business Purpose (e.g., Acquisition Details)", "purpose.businessPurpose")}
+        <div className="space-y-8 animate-in fade-in duration-500">
+          {wrapTextArea("Business Purpose", "purpose.businessPurpose")}
           {wrapTextArea("Adjudication Considerations", "purpose.adjudicationConsiderations")}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {wrapInput("Annual Review Status", "purpose.annualReviewStatus")}
@@ -327,6 +317,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
               </div>
             </div>
           </div>
+          {wrapTextArea("Additional Comments", "purpose.additionalComments")}
         </div>
       );
 
@@ -342,6 +333,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             {wrapInput("Total Excl. Trading", "creditPosition.totalExcludingTrading", "number")}
             {wrapInput("Trading Line", "creditPosition.tradingLine", "number")}
           </div>
+          {wrapTextArea("Additional Comments", "creditPosition.additionalComments")}
         </div>
       );
 
@@ -351,129 +343,430 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <div className="bg-tdgreen rounded-3xl p-10 text-white grid grid-cols-1 md:grid-cols-4 gap-8 shadow-2xl shadow-tdgreen/20">
             <div className="space-y-1">
                <span className="text-[10px] font-black uppercase text-tdgreen-light/80 tracking-widest">LCC Approval</span>
-               <input 
-                 className="bg-transparent text-white text-xl font-bold w-full outline-none border-b border-white/20 focus:border-white transition-all" 
-                 value={getNested(data, 'financialInfo.raroc.lccStatus')} 
-                 onChange={e => setNested('financialInfo.raroc.lccStatus', e.target.value)} 
-               />
+               <input className="bg-transparent text-white text-xl font-bold w-full outline-none border-b border-white/20" value={getNested(data, 'financialInfo.raroc.lccStatus')} onChange={e => setNested('financialInfo.raroc.lccStatus', e.target.value)} />
             </div>
             <div className="space-y-1">
                <span className="text-[10px] font-black uppercase text-tdgreen-light/80 tracking-widest">Econ RAROC %</span>
-               <input 
-                 type="number"
-                 className="bg-transparent text-white text-4xl font-black w-full outline-none" 
-                 value={getNested(data, 'financialInfo.raroc.economicRaroc')} 
-                 onChange={e => setNested('financialInfo.raroc.economicRaroc', Number(e.target.value))} 
-               />
+               <input type="number" className="bg-transparent text-white text-4xl font-black w-full outline-none" value={getNested(data, 'financialInfo.raroc.economicRaroc')} onChange={e => setNested('financialInfo.raroc.economicRaroc', Number(e.target.value))} />
             </div>
             <div className="space-y-1">
                <span className="text-[10px] font-black uppercase text-tdgreen-light/80 tracking-widest">Rel RAROC %</span>
-               <input 
-                 type="number"
-                 className="bg-transparent text-white text-4xl font-black w-full outline-none" 
-                 value={getNested(data, 'financialInfo.raroc.relationshipRaroc')} 
-                 onChange={e => setNested('financialInfo.raroc.relationshipRaroc', Number(e.target.value))} 
-               />
-            </div>
-            <div className="space-y-1">
-               <span className="text-[10px] font-black uppercase text-tdgreen-light/80 tracking-widest">Econ Capital</span>
-               <div className="flex items-center gap-1">
-                 <span className="text-xl font-bold">$</span>
-                 <input 
-                   type="number"
-                   className="bg-transparent text-white text-xl font-bold w-full outline-none" 
-                   value={getNested(data, 'financialInfo.raroc.economicCapital')} 
-                   onChange={e => setNested('financialInfo.raroc.economicCapital', Number(e.target.value))} 
-                 />
-               </div>
+               <input type="number" className="bg-transparent text-white text-4xl font-black w-full outline-none" value={getNested(data, 'financialInfo.raroc.relationshipRaroc')} onChange={e => setNested('financialInfo.raroc.relationshipRaroc', Number(e.target.value))} />
             </div>
           </div>
           <Header title="Review Dates" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {wrapInput("New Annual Review Date", "reviewDates.newAnnualDate", "date")}
-            {wrapInput("Authorized Annual Date", "reviewDates.authorizedDate", "date")}
-            {wrapInput("Interim Review Date", "reviewDates.interimDate", "date")}
+            {wrapInput("New Annual Date", "reviewDates.newAnnualDate", "date")}
+            {wrapInput("Authorized Date", "reviewDates.authorizedDate", "date")}
           </div>
+          {wrapTextArea("Additional Comments", "financialInfo.additionalComments")}
+        </div>
+      );
+
+    case 'risk_ratings':
+      return (
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="space-y-6">
+            <Header title="Borrower Rating" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {wrapInput("TD BRR proposed", "riskAssessment.borrowerRating.proposedBrr")}
+              {wrapInput("TD BRR current", "riskAssessment.borrowerRating.currentBrr")}
+              {wrapInput("Risk Analyst", "riskAssessment.borrowerRating.riskAnalyst")}
+              {wrapInput("New RA / Policy", "riskAssessment.borrowerRating.newRaPolicy")}
+              {wrapInput("RA/ Policy Model", "riskAssessment.borrowerRating.raPolicyModel")}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <Header title="Agency Rating" />
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm bg-white">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Agency</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Issuer Rating</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Senior Unsecured Notes</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Outlook</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Last Updated</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.riskAssessment.publicRatings.map((rating: PublicRating, idx: number) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-4 font-black text-slate-700 text-sm">{rating.agency}</td>
+                      <td className="p-2">
+                        <input 
+                          className="w-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-tdgreen/20 rounded-lg text-sm font-medium outline-none" 
+                          value={rating.issuerRating} 
+                          placeholder="e.g. Baa1"
+                          onChange={(e) => {
+                            const newRatings = [...data.riskAssessment.publicRatings];
+                            newRatings[idx].issuerRating = e.target.value;
+                            setNested('riskAssessment.publicRatings', newRatings);
+                          }} 
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input 
+                          className="w-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-tdgreen/20 rounded-lg text-sm font-medium outline-none" 
+                          value={rating.seniorUnsecured} 
+                          placeholder="e.g. A3"
+                          onChange={(e) => {
+                            const newRatings = [...data.riskAssessment.publicRatings];
+                            newRatings[idx].seniorUnsecured = e.target.value;
+                            setNested('riskAssessment.publicRatings', newRatings);
+                          }} 
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input 
+                          className="w-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-tdgreen/20 rounded-lg text-sm font-medium outline-none" 
+                          value={rating.outlook} 
+                          placeholder="Stable"
+                          onChange={(e) => {
+                            const newRatings = [...data.riskAssessment.publicRatings];
+                            newRatings[idx].outlook = e.target.value;
+                            setNested('riskAssessment.publicRatings', newRatings);
+                          }} 
+                        />
+                      </td>
+                      <td className="p-2 text-sm text-slate-500">
+                        <input 
+                          type="date"
+                          className="w-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-tdgreen/20 rounded-lg text-sm font-medium outline-none" 
+                          value={rating.updatedAt} 
+                          onChange={(e) => {
+                            const newRatings = [...data.riskAssessment.publicRatings];
+                            newRatings[idx].updatedAt = e.target.value;
+                            setNested('riskAssessment.publicRatings', newRatings);
+                          }} 
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {wrapTextArea("Additional Comments", "riskAssessment.additionalComments")}
         </div>
       );
 
     case 'facility_info':
       return (
         <div className="space-y-10 animate-in fade-in duration-500">
-          <Header title="Interest Rates & Fees" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {wrapInput("Applicable Margin", "facilityDetails.rates.margin")}
-            {wrapInput("Facility Fee", "facilityDetails.rates.fee")}
-            {wrapInput("All-in Drawn", "facilityDetails.rates.allIn")}
-            {wrapInput("Upfront Fees", "facilityDetails.rates.upfront")}
+          <Header title="Pricing" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {wrapInput("Margin", "facilityDetails.rates.margin")}
+            {wrapInput("Fee", "facilityDetails.rates.fee")}
+            {wrapInput("All-In", "facilityDetails.rates.allIn")}
+            {wrapInput("Upfront", "facilityDetails.rates.upfront")}
           </div>
-
-          <Header title="Terms & Renewal" />
+          <Header title="Terms" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {wrapInput("Tenor", "facilityDetails.terms.tenor")}
-            {wrapInput("Maturity Date", "facilityDetails.terms.maturity", "date")}
+            {wrapInput("Maturity", "facilityDetails.terms.maturity", "date")}
+            {wrapInput("Extension Option", "facilityDetails.terms.extension")}
+            {wrapInput("Term Out", "facilityDetails.terms.termOut")}
+          </div>
+          <Header title="Repayment & Prepayment" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {wrapCheckbox("Amortizing", "facilityDetails.repayment.amortizing")}
+            {wrapCheckbox("Prepayment Permitted", "facilityDetails.prepayment.permitted")}
+            {wrapTextArea("Repayment Comments", "facilityDetails.repayment.comments")}
+            {wrapTextArea("Prepayment Comments", "facilityDetails.prepayment.comments")}
+          </div>
+          {wrapTextArea("Additional Comments", "facilityDetails.additionalComments")}
+        </div>
+      );
+
+    case 'documentation_covenants':
+      return (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {wrapInput("Agreement Type", "documentation.agreementType")}
+            {wrapInput("Agreement Date", "documentation.date", "date")}
+            {wrapInput("Status", "documentation.status")}
+            {wrapInput("Jurisdiction", "documentation.jurisdiction")}
+            {wrapTextArea("Amendments", "documentation.amendments", 2)}
+          </div>
+          
+          <Header title="Covenants" />
+          <div className="space-y-6">
+            {wrapTextArea("Negative Covenants", "documentation.negativeCovenants")}
+            {wrapTextArea("Positive Covenants", "documentation.positiveCovenants")}
+            {wrapTextArea("Financial Covenants", "documentation.financialCovenants")}
+            {wrapTextArea("Events of Default", "documentation.eventsOfDefault")}
+          </div>
+
+          <Header title="Reporting & Funding" />
+          <div className="space-y-6">
+            {wrapTextArea("Reporting Requirements", "documentation.reportingReqs")}
+            {wrapTextArea("Funding Conditions", "documentation.fundingConditions")}
+          </div>
+
+          <Header title="Other Legal Terms" />
+          <div className="space-y-6">
+             {wrapCheckbox("Waiver of Jury Trial", "documentation.waiverJuryTrial")}
+             {wrapTextArea("Additional Comments", "documentation.additionalComments")}
           </div>
         </div>
       );
 
     case 'analysis_narrative':
       return (
-        <div className="space-y-12 animate-in fade-in slide-in-from-right-8 duration-700">
-          <div className="bg-white border border-slate-200 p-8 rounded-[2rem] shadow-xl shadow-slate-200/10">
-            <Header title="Borrower Overview" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
-              {wrapTextArea("Company Description", "analysis.overview.companyDesc")}
-              {wrapTextArea("Recent Events", "analysis.overview.recentEvents")}
-            </div>
-          </div>
+        <div className="space-y-12 animate-in fade-in duration-700">
+          <Header title="Overview" />
+          {wrapTextArea("Borrower Overview", "analysis.overview.companyDesc")}
+          {wrapTextArea("Recent Events", "analysis.overview.recentEvents")}
+          {wrapTextArea("Sources & Uses", "analysis.overview.sourcesUses")}
+          {wrapTextArea("Financing Plan", "analysis.overview.financingPlan")}
           
-          <div className="grid grid-cols-1 gap-8">
-            <Header title="Recommendation Summary" />
-            <div className="p-8 bg-tdgreen rounded-[2.5rem] shadow-2xl shadow-tdgreen/10 text-white">
-               {wrapTextArea("Executive Summary & Recommendation", "analysis.justification.recommendation", 8, "text-slate-800")}
-            </div>
+          <Header title="Financial Analysis" />
+          {wrapTextArea("Ratio Analysis", "analysis.financial.ratioAnalysis")}
+          {wrapTextArea("Capital Structure", "analysis.financial.capStructure")}
+          {wrapTextArea("Liquidity", "analysis.financial.liquidity")}
+          {wrapTextArea("Debt Maturity Profile", "analysis.financial.debtMaturity")}
+
+          <div className="p-8 bg-tdgreen rounded-[2rem] text-white">
+             {wrapTextArea("Recommendation Summary", "analysis.justification.recommendation", 8, "text-slate-800")}
           </div>
+          {wrapTextArea("Additional Comments", "analysis.additionalComments")}
+        </div>
+      );
+
+    case 'compliance_signoff':
+      return (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {wrapInput("Signatory Name", "compliance.signOff.name")}
+            {wrapInput("Signatory Title", "compliance.signOff.title")}
+            {wrapInput("Signatory Date", "compliance.signOff.date", "date")}
+            {wrapInput("Approver", "compliance.signOff.approver")}
+          </div>
+          <Header title="Legal Declarations" />
+          <div className="space-y-4">
+            {wrapTextArea("Declaration of Interest", "compliance.legal.declarationInterest")}
+            {wrapTextArea("Directors Information", "compliance.legal.directors")}
+            {wrapTextArea("Illegal Tying Disclosure", "compliance.legal.illegalTying")}
+          </div>
+          {wrapTextArea("Additional Comments", "compliance.additionalComments")}
         </div>
       );
 
     case 'document_preview':
       return (
-        <div className="max-w-4xl mx-auto space-y-16 py-10 print:p-0 animate-in fade-in zoom-in-95 duration-700 pb-32">
-          {/* Reuse the existing document_preview logic from previous files... */}
-          <div className="text-center space-y-6 border-b-4 border-tdgreen pb-12">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-tdgreen text-white font-black text-3xl flex items-center justify-center rounded-xl shadow-xl shadow-tdgreen/20">TD</div>
-            </div>
-            <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tight">Credit Application Memo</h1>
-            <div className="flex justify-between items-end text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">
-              <span>Institution: TD Bank N.A.</span>
-              <span>Ref ID: {getNested(data, 'primaryBorrower.borrowerName')?.slice(0, 3).toUpperCase() || 'LNX'}-{Math.floor(Math.random() * 9000) + 1000}</span>
-              <span>Originating Office: {getNested(data, 'primaryBorrower.originatingOffice') || "N/A"}</span>
-            </div>
+        <div className="max-w-4xl mx-auto space-y-12 py-10 print:p-0 relative">
+          {/* Header Branding */}
+          <div className="border-b-8 border-tdgreen pb-10 text-center">
+            <div className="inline-block px-4 py-2 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.3em] mb-4">Confidential</div>
+            <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter">Credit Memo Application</h1>
+            <p className="text-slate-500 font-bold mt-2 text-sm uppercase tracking-widest">TD Institutional Banking • Syndicate Credit</p>
           </div>
 
-          <section className="space-y-6">
-            <h2 className="text-2xl font-black bg-slate-900 text-white px-6 py-3 uppercase tracking-widest shadow-lg">1. Executive Summary & Recommendation</h2>
-            <div className="prose prose-slate max-w-none">
-              <div className="text-lg text-tdgreen font-bold italic border-l-8 border-tdgreen pl-8 py-6 bg-tdgreen-light/20 rounded-r-3xl whitespace-pre-wrap">
-                {getNested(data, 'analysis.justification.recommendation') || "Synthesis pending."}
+          {/* 1. Executive Recommendation */}
+          <section className="space-y-4">
+            <PreviewHeader title="1. Executive Recommendation" />
+            <div className="p-8 bg-slate-50 border-l-4 border-tdgreen italic text-lg leading-relaxed text-slate-800">
+              {getNested(data, 'analysis.justification.recommendation') || "Recommendation pending analysis."}
+            </div>
+            <PreviewTextArea label="Analyst Recommendation Narrative" value={getNested(data, 'analysis.additionalComments')} />
+          </section>
+
+          {/* 2. Borrower Details */}
+          <section className="space-y-4">
+            <PreviewHeader title="2. Borrower Information" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 px-2">
+              <PreviewRow label="Legal Name" value={getNested(data, 'primaryBorrower.borrowerName')} />
+              <PreviewRow label="Originating Office" value={getNested(data, 'primaryBorrower.originatingOffice')} />
+              <PreviewRow label="Group" value={getNested(data, 'primaryBorrower.group')} />
+              <PreviewRow label="Account Class" value={getNested(data, 'primaryBorrower.accountClassification')} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              <PreviewRow label="Quarterly Review" value={getNested(data, 'primaryBorrower.quarterlyReview')} />
+              <PreviewRow label="Leveraged Lending" value={getNested(data, 'primaryBorrower.leveragedLending')} />
+              <PreviewRow label="Strategic Loan" value={getNested(data, 'primaryBorrower.strategicLoan')} />
+              <PreviewRow label="Credit Exception" value={getNested(data, 'primaryBorrower.creditException')} />
+              <PreviewRow label="Covenant-Lite" value={getNested(data, 'primaryBorrower.covenantLite')} />
+              <PreviewRow label="Weak Underwriting" value={getNested(data, 'primaryBorrower.weakUnderwriting')} />
+            </div>
+            <PreviewTextArea label="Borrower Narrative" value={getNested(data, 'primaryBorrower.additionalComments')} />
+          </section>
+
+          {/* 3. Purpose & Adjudication */}
+          <section className="space-y-4">
+            <PreviewHeader title="3. Purpose & Adjudication" />
+            <PreviewTextArea label="Business Purpose" value={getNested(data, 'purpose.businessPurpose')} />
+            <PreviewTextArea label="Adjudication Considerations" value={getNested(data, 'purpose.adjudicationConsiderations')} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 px-2">
+              <PreviewRow label="Annual Review Status" value={getNested(data, 'purpose.annualReviewStatus')} />
+              <div className="flex flex-col gap-1 py-2">
+                <span className="text-slate-400 font-bold uppercase tracking-[0.1em] text-[10px]">Review Purposes:</span>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {getNested(data, 'purpose.reviewPurpose.newFacilities') && <span className="px-2 py-0.5 bg-slate-100 text-[9px] font-black uppercase">New Facilities</span>}
+                  {getNested(data, 'purpose.reviewPurpose.financialCovenants') && <span className="px-2 py-0.5 bg-slate-100 text-[9px] font-black uppercase">Financial Covenants</span>}
+                  {getNested(data, 'purpose.reviewPurpose.maturityDates') && <span className="px-2 py-0.5 bg-slate-100 text-[9px] font-black uppercase">Maturity Dates</span>}
+                </div>
               </div>
             </div>
           </section>
 
-          <section className="space-y-6">
-            <h2 className="text-2xl font-black bg-slate-100 text-slate-900 px-6 py-3 uppercase tracking-widest border-l-[12px] border-tdgreen">2. Borrower Profile</h2>
-            <div className="grid grid-cols-2 gap-x-16 gap-y-2">
-              <PreviewRow label="Borrower Name" value={getNested(data, 'primaryBorrower.borrowerName')} />
-              <PreviewRow label="Group" value={getNested(data, 'primaryBorrower.group')} />
-              <PreviewRow label="Account Class" value={getNested(data, 'primaryBorrower.accountClassification')} />
-              <PreviewRow label="Leveraged Lending" value={getNested(data, 'primaryBorrower.leveragedLending') ? 'Yes' : 'No'} />
+          {/* 4. Credit Position */}
+          <section className="space-y-4">
+            <PreviewHeader title="4. Credit Position" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 px-2">
+              <PreviewRow label="Credit Requested" value={getNested(data, 'creditPosition.creditRequested')?.toLocaleString()} />
+              <PreviewRow label="Present Position" value={getNested(data, 'creditPosition.presentPosition')?.toLocaleString()} />
+              <PreviewRow label="Prev. Authorized" value={getNested(data, 'creditPosition.previousAuthorization')?.toLocaleString()} />
+              <PreviewRow label="Committed > 1 Year" value={getNested(data, 'creditPosition.committedOverOneYear')?.toLocaleString()} />
+              <PreviewRow label="Total Excl. Trading" value={getNested(data, 'creditPosition.totalExcludingTrading')?.toLocaleString()} />
+              <PreviewRow label="Trading Line" value={getNested(data, 'creditPosition.tradingLine')?.toLocaleString()} />
             </div>
+            <PreviewTextArea label="Exposure Comments" value={getNested(data, 'creditPosition.additionalComments')} />
           </section>
 
-          <footer className="text-center pt-32 opacity-30">
-             <p className="text-[9px] font-black uppercase tracking-[1em] text-slate-400">TD Bank N.A. • Restricted • Confidential • Internal Use Only</p>
-          </footer>
+          {/* 5. Financials & Profitability */}
+          <section className="space-y-4">
+            <PreviewHeader title="5. Financials & Profitability" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-slate-900 text-white p-6 rounded-2xl">
+              <div className="text-center">
+                <div className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Econ RAROC</div>
+                <div className="text-2xl font-black">{getNested(data, 'financialInfo.raroc.economicRaroc')}%</div>
+              </div>
+              <div className="text-center border-x border-white/10">
+                <div className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Relationship RAROC</div>
+                <div className="text-2xl font-black">{getNested(data, 'financialInfo.raroc.relationshipRaroc')}%</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[10px] uppercase tracking-widest opacity-60 mb-1">LCC Status</div>
+                <div className="text-lg font-black">{getNested(data, 'financialInfo.raroc.lccStatus') || "Pending"}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 px-2 mt-4">
+               <PreviewRow label="New Annual Date" value={getNested(data, 'reviewDates.newAnnualDate')} />
+               <PreviewRow label="Authorized Date" value={getNested(data, 'reviewDates.authorizedDate')} />
+            </div>
+            <PreviewTextArea label="Profitability Comments" value={getNested(data, 'financialInfo.additionalComments')} />
+          </section>
+
+          {/* 6. Risk Assessment */}
+          <section className="space-y-4">
+            <PreviewHeader title="6. Risk Assessment" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 px-2">
+              <PreviewRow label="Proposed BRR" value={getNested(data, 'riskAssessment.borrowerRating.proposedBrr')} />
+              <PreviewRow label="Current BRR" value={getNested(data, 'riskAssessment.borrowerRating.currentBrr')} />
+              <PreviewRow label="RA / Policy" value={getNested(data, 'riskAssessment.borrowerRating.newRaPolicy')} />
+              <PreviewRow label="RA Model" value={getNested(data, 'riskAssessment.borrowerRating.raPolicyModel')} />
+              <PreviewRow label="Analyst" value={getNested(data, 'riskAssessment.borrowerRating.riskAnalyst')} />
+            </div>
+            
+            <div className="mt-4">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-2">Agency Ratings</div>
+              <table className="w-full text-left border-collapse border border-slate-200 text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="p-3 font-black uppercase">Agency</th>
+                    <th className="p-3 font-black uppercase">Issuer</th>
+                    <th className="p-3 font-black uppercase">Senior Unsec</th>
+                    <th className="p-3 font-black uppercase">Outlook</th>
+                    <th className="p-3 font-black uppercase">Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.riskAssessment?.publicRatings?.map((r, i) => (
+                    <tr key={i} className="border-b border-slate-100">
+                      <td className="p-3 font-black">{r.agency}</td>
+                      <td className="p-3">{r.issuerRating || "-"}</td>
+                      <td className="p-3">{r.seniorUnsecured || "-"}</td>
+                      <td className="p-3">{r.outlook || "-"}</td>
+                      <td className="p-3 text-slate-500">{r.updatedAt || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PreviewTextArea label="Risk Assessment Summary" value={getNested(data, 'riskAssessment.additionalComments')} />
+          </section>
+
+          {/* 7. Facility Details */}
+          <section className="space-y-4">
+            <PreviewHeader title="7. Facility Details" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 px-2">
+              <PreviewRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} />
+              <PreviewRow label="Fee" value={getNested(data, 'facilityDetails.rates.fee')} />
+              <PreviewRow label="All-In" value={getNested(data, 'facilityDetails.rates.allIn')} />
+              <PreviewRow label="Upfront" value={getNested(data, 'facilityDetails.rates.upfront')} />
+              <PreviewRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} />
+              <PreviewRow label="Maturity" value={getNested(data, 'facilityDetails.terms.maturity')} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 px-2">
+               <PreviewRow label="Amortizing" value={getNested(data, 'facilityDetails.repayment.amortizing')} />
+               <PreviewRow label="Prepayment Permitted" value={getNested(data, 'facilityDetails.prepayment.permitted')} />
+            </div>
+            <PreviewTextArea label="Facility Narrative" value={getNested(data, 'facilityDetails.additionalComments')} />
+          </section>
+
+          {/* 8. Legal & Covenants */}
+          <section className="space-y-4">
+            <PreviewHeader title="8. Legal & Covenants" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 px-2">
+              <PreviewRow label="Agreement Type" value={getNested(data, 'documentation.agreementType')} />
+              <PreviewRow label="Agreement Date" value={getNested(data, 'documentation.date')} />
+              <PreviewRow label="Status" value={getNested(data, 'documentation.status')} />
+              <PreviewRow label="Jurisdiction" value={getNested(data, 'documentation.jurisdiction')} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 mt-6">
+              <PreviewTextArea label="Amendments" value={getNested(data, 'documentation.amendments')} />
+              <PreviewTextArea label="Negative Covenants" value={getNested(data, 'documentation.negativeCovenants')} />
+              <PreviewTextArea label="Positive Covenants" value={getNested(data, 'documentation.positiveCovenants')} />
+              <PreviewTextArea label="Financial Covenants" value={getNested(data, 'documentation.financialCovenants')} />
+              <PreviewTextArea label="Events of Default" value={getNested(data, 'documentation.eventsOfDefault')} />
+              <PreviewTextArea label="Reporting Requirements" value={getNested(data, 'documentation.reportingReqs')} />
+              <PreviewTextArea label="Funding Conditions" value={getNested(data, 'documentation.fundingConditions')} />
+            </div>
+            <PreviewTextArea label="Legal Narrative" value={getNested(data, 'documentation.additionalComments')} />
+          </section>
+
+          {/* 9. Analysis Overview */}
+          <section className="space-y-4">
+            <PreviewHeader title="9. Analysis & Financial Review" />
+            <PreviewTextArea label="Borrower Overview" value={getNested(data, 'analysis.overview.companyDesc')} />
+            <PreviewTextArea label="Recent Events" value={getNested(data, 'analysis.overview.recentEvents')} />
+            <PreviewTextArea label="Ratio Analysis" value={getNested(data, 'analysis.financial.ratioAnalysis')} />
+            <PreviewTextArea label="Capital Structure" value={getNested(data, 'analysis.financial.capStructure')} />
+            <PreviewTextArea label="Liquidity Analysis" value={getNested(data, 'analysis.financial.liquidity')} />
+            <PreviewTextArea label="Debt Maturity Profile" value={getNested(data, 'analysis.financial.debtMaturity')} />
+          </section>
+
+          {/* 10. Compliance & Sign-off */}
+          <section className="space-y-4 mt-12 border-t-2 border-slate-200 pt-10">
+            <PreviewHeader title="10. Sign-off & Compliance" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 px-2">
+              <PreviewRow label="Signatory Name" value={getNested(data, 'compliance.signOff.name')} />
+              <PreviewRow label="Signatory Title" value={getNested(data, 'compliance.signOff.title')} />
+              <PreviewRow label="Sign-off Date" value={getNested(data, 'compliance.signOff.date')} />
+              <PreviewRow label="Approver" value={getNested(data, 'compliance.signOff.approver')} />
+            </div>
+            <div className="mt-8 space-y-4">
+              <PreviewTextArea label="Declaration of Interest" value={getNested(data, 'compliance.legal.declarationInterest')} />
+              <PreviewTextArea label="Directors Information" value={getNested(data, 'compliance.legal.directors')} />
+              <PreviewTextArea label="Illegal Tying Disclosure" value={getNested(data, 'compliance.legal.illegalTying')} />
+              <PreviewTextArea label="Compliance Comments" value={getNested(data, 'compliance.additionalComments')} />
+            </div>
+            
+            {/* Signature Area */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-20">
+              <div className="space-y-4 border-t border-slate-300 pt-6">
+                <div className="text-xs font-black text-slate-800 uppercase">{getNested(data, 'compliance.signOff.name') || "Analyst Signature"}</div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{getNested(data, 'compliance.signOff.title') || "Senior Analyst"}</div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">Digitally Authenticated: {getNested(data, 'compliance.signOff.date')}</div>
+              </div>
+              <div className="space-y-4 border-t border-slate-300 pt-6">
+                <div className="text-xs font-black text-slate-800 uppercase">{getNested(data, 'compliance.signOff.approver') || "Approver Signature"}</div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Credit Risk Management</div>
+              </div>
+            </div>
+          </section>
         </div>
       );
 

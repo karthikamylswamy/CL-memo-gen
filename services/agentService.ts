@@ -66,8 +66,9 @@ export const processDocumentWithAgents = async (files: File[]): Promise<{ data: 
             2. "fieldSources": An array of objects, where each object has "fieldPath" (e.g. "primaryBorrower.borrowerName") and "sourceFile" (the EXACT FILENAME from the list above).
             
             Guidelines:
-            - Cross-reference files. Use the Credit Agreement for legal terms and Financial Statements for ratios.
-            - Populate "facilityDetails" with pricing, tenor, and repayment structures.
+            - Capture both internal (proposed) and external agency ratings.
+            - Populate riskAssessment.borrowerRating and riskAssessment.publicRatings.
+            - Extract specific legal terms like negative/positive/financial covenants, reporting requirements, and funding conditions.
             
             Output strictly valid JSON.
           ` }
@@ -87,41 +88,45 @@ export const processDocumentWithAgents = async (files: File[]): Promise<{ data: 
                     borrowerName: { type: Type.STRING },
                     originatingOffice: { type: Type.STRING },
                     group: { type: Type.STRING },
-                    accountClassification: { type: Type.STRING },
-                    quarterlyReview: { type: Type.BOOLEAN },
-                    leveragedLending: { type: Type.BOOLEAN },
-                    covenantLite: { type: Type.BOOLEAN },
-                    strategicLoan: { type: Type.BOOLEAN }
+                    accountClassification: { type: Type.STRING }
                   }
                 },
-                purpose: {
+                documentation: {
                   type: Type.OBJECT,
                   properties: {
-                    businessPurpose: { type: Type.STRING },
-                    adjudicationConsiderations: { type: Type.STRING },
-                    annualReviewStatus: { type: Type.STRING }
+                    agreementType: { type: Type.STRING },
+                    date: { type: Type.STRING },
+                    negativeCovenants: { type: Type.STRING },
+                    positiveCovenants: { type: Type.STRING },
+                    financialCovenants: { type: Type.STRING },
+                    reportingReqs: { type: Type.STRING },
+                    fundingConditions: { type: Type.STRING }
                   }
                 },
-                creditPosition: {
+                riskAssessment: {
                   type: Type.OBJECT,
                   properties: {
-                    creditRequested: { type: Type.NUMBER },
-                    previousAuthorization: { type: Type.NUMBER },
-                    presentPosition: { type: Type.NUMBER },
-                    tradingLine: { type: Type.NUMBER },
-                    committedOverOneYear: { type: Type.NUMBER }
-                  }
-                },
-                financialInfo: {
-                  type: Type.OBJECT,
-                  properties: {
-                    raroc: {
+                    borrowerRating: {
                       type: Type.OBJECT,
                       properties: {
-                        economicRaroc: { type: Type.NUMBER },
-                        relationshipRaroc: { type: Type.NUMBER },
-                        lccStatus: { type: Type.STRING },
-                        economicCapital: { type: Type.NUMBER }
+                        proposedBrr: { type: Type.STRING },
+                        currentBrr: { type: Type.STRING },
+                        riskAnalyst: { type: Type.STRING },
+                        newRaPolicy: { type: Type.STRING },
+                        raPolicyModel: { type: Type.STRING }
+                      }
+                    },
+                    publicRatings: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          agency: { type: Type.STRING },
+                          issuerRating: { type: Type.STRING },
+                          seniorUnsecured: { type: Type.STRING },
+                          outlook: { type: Type.STRING },
+                          updatedAt: { type: Type.STRING }
+                        }
                       }
                     }
                   }
@@ -133,9 +138,7 @@ export const processDocumentWithAgents = async (files: File[]): Promise<{ data: 
                       type: Type.OBJECT,
                       properties: {
                         margin: { type: Type.STRING },
-                        fee: { type: Type.STRING },
-                        allIn: { type: Type.STRING },
-                        upfront: { type: Type.STRING }
+                        fee: { type: Type.STRING }
                       }
                     },
                     terms: {
@@ -143,27 +146,6 @@ export const processDocumentWithAgents = async (files: File[]): Promise<{ data: 
                       properties: {
                         tenor: { type: Type.STRING },
                         maturity: { type: Type.STRING }
-                      }
-                    }
-                  }
-                },
-                documentation: {
-                  type: Type.OBJECT,
-                  properties: {
-                    agreementType: { type: Type.STRING },
-                    jurisdiction: { type: Type.STRING },
-                    negativeCovenants: { type: Type.STRING },
-                    eventsOfDefault: { type: Type.STRING }
-                  }
-                },
-                analysis: {
-                  type: Type.OBJECT,
-                  properties: {
-                    overview: {
-                      type: Type.OBJECT,
-                      properties: {
-                        companyDesc: { type: Type.STRING },
-                        recentEvents: { type: Type.STRING }
                       }
                     }
                   }
@@ -193,7 +175,6 @@ export const processDocumentWithAgents = async (files: File[]): Promise<{ data: 
   const extracted = result.extractedData || {};
   const rawFieldSources = result.fieldSources || [];
   
-  // Convert array back to Record<string, string> for the application
   const fieldSources: Record<string, string> = {};
   if (Array.isArray(rawFieldSources)) {
     rawFieldSources.forEach((item: any) => {
@@ -210,9 +191,7 @@ export const processDocumentWithAgents = async (files: File[]): Promise<{ data: 
       contents: `
         You are the Lead Credit Underwriter. 
         Analyze the extracted data from ${files.length} deal documents: ${JSON.stringify(extracted)}
-        
-        Task: Write a deep executive recommendation for the credit committee. 
-        Be professional, concise, and definitive.
+        Write a professional executive recommendation.
       `
     });
     return response.text;
@@ -227,14 +206,6 @@ export const processDocumentWithAgents = async (files: File[]): Promise<{ data: 
       justification: {
         recommendation: narrative
       }
-    },
-    compliance: { 
-      signOff: { 
-        name: "Institutional Credit Committee", 
-        title: "Senior Adjudicator", 
-        date: new Date().toISOString().split('T')[0], 
-        approver: "Tier 1 Executive" 
-      } 
     }
   };
 

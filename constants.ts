@@ -28,6 +28,7 @@ export const INITIAL_DATA: CreditMemoData = {
     covenantLite: false,
     weakUnderwriting: false,
     tdsPolicyException: false,
+    additionalComments: '',
   },
   purpose: {
     businessPurpose: '',
@@ -38,6 +39,7 @@ export const INITIAL_DATA: CreditMemoData = {
       financialCovenants: false,
       maturityDates: false,
     },
+    additionalComments: '',
   },
   creditPosition: {
     previousAuthorization: 0,
@@ -46,11 +48,13 @@ export const INITIAL_DATA: CreditMemoData = {
     committedOverOneYear: 0,
     totalExcludingTrading: 0,
     tradingLine: 0,
+    additionalComments: '',
   },
   groupExposure: [],
   financialInfo: {
     covenants: [],
-    raroc: { lccStatus: '', economicRaroc: 0, relationshipRaroc: 0, economicCapital: 0 }
+    raroc: { lccStatus: '', economicRaroc: 0, relationshipRaroc: 0, economicCapital: 0 },
+    additionalComments: '',
   },
   reviewDates: { newAnnualDate: '', authorizedDate: '', interimDate: '', comments: '' },
   counterparty: {
@@ -61,12 +65,23 @@ export const INITIAL_DATA: CreditMemoData = {
     }
   },
   riskAssessment: {
-    summary: { ratings: '', analyst: '', fileName: '' },
-    publicRatings: [],
+    borrowerRating: {
+      proposedBrr: '',
+      currentBrr: '',
+      riskAnalyst: '',
+      newRaPolicy: '',
+      raPolicyModel: ''
+    },
+    publicRatings: [
+      { agency: 'Moody\'s', issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' },
+      { agency: 'S&P', issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' },
+      { agency: 'Fitch', issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' }
+    ],
     details: {
       tdSic: '', industryRisk: '', security: '', ltv: 0, businessRisk: '',
       financialRisk: '', envRisk: '', countryRisk: '', governanceRisk: '', withinLimits: true
-    }
+    },
+    additionalComments: '',
   },
   facilityDetails: {
     summaries: [],
@@ -76,23 +91,26 @@ export const INITIAL_DATA: CreditMemoData = {
     terms: { tenor: '', maturity: '', extension: '', termOut: '' },
     repayment: { amortizing: false, comments: '' },
     prepayment: { permitted: false, comments: '' },
+    additionalComments: '',
   },
   documentation: {
     agreementType: '', date: '', status: '', amendments: '', comments: '',
     jurisdiction: '', waiverJuryTrial: false, negativeCovenants: '',
-    positiveCovenants: '', financialCovenants: [], eventsOfDefault: '', reportingReqs: ''
+    positiveCovenants: '', financialCovenants: '', eventsOfDefault: '', reportingReqs: '',
+    fundingConditions: '', additionalComments: '',
   },
   analysis: {
-    // Fixed: Initialized overview with empty strings instead of type names and used commas instead of semicolons
     overview: { companyDesc: '', recentEvents: '', sourcesUses: '', financingPlan: '' },
     financial: { moodyAnalysis: '', ratioAnalysis: '', capStructure: '', liquidity: '', debtMaturity: '' },
     leverage: '',
     sensitivity: { baseCase: '', downsideCase: '' },
-    justification: { mraOutput: '', peerComp: '', fundamentals: '', fcf: '', recommendation: '' }
+    justification: { mraOutput: '', peerComp: '', fundamentals: '', fcf: '', recommendation: '' },
+    additionalComments: '',
   },
   compliance: {
     signOff: { name: '', title: '', date: '', approver: '' },
-    legal: { declarationInterest: '', directors: '', illegalTying: '' }
+    legal: { declarationInterest: '', directors: '', illegalTying: '' },
+    additionalComments: '',
   },
   fieldSources: {}
 };
