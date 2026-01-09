@@ -6,9 +6,10 @@ interface SidebarProps {
   sections: Section[];
   activeSection: SectionKey;
   onSectionChange: (id: SectionKey) => void;
+  onReset: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ sections, activeSection, onSectionChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({ sections, activeSection, onSectionChange, onReset }) => {
   const categories = Array.from(new Set(sections.map(s => s.category)));
 
   return (
@@ -44,6 +45,16 @@ const Sidebar: React.FC<SidebarProps> = ({ sections, activeSection, onSectionCha
             </nav>
           </div>
         ))}
+
+        <div className="mt-8 pt-8 border-t border-slate-800">
+          <button
+            onClick={onReset}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 transition-all border border-rose-500/20"
+          >
+            <span>🗑️</span>
+            <span>Reset Workspace</span>
+          </button>
+        </div>
       </div>
       
       <div className="mt-auto p-6 border-t border-slate-800 bg-slate-900/50 backdrop-blur-md">

@@ -1,4 +1,19 @@
 
+export interface SourceFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: Date;
+}
+
 export interface CreditMemoData {
   primaryBorrower: {
     borrowerName: string;
@@ -119,6 +134,7 @@ export interface CreditMemoData {
     signOff: { name: string; title: string; date: string; approver: string };
     legal: { declarationInterest: string; directors: string; illegalTying: string };
   };
+  fieldSources?: Record<string, string>;
   [key: string]: any;
 }
 
@@ -132,6 +148,7 @@ export type SectionKey =
   | 'documentation_covenants'
   | 'analysis_narrative'
   | 'compliance_signoff'
+  | 'source_documents'
   | 'document_preview';
 
 export interface Section {

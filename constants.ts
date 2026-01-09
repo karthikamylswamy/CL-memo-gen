@@ -11,6 +11,7 @@ export const SECTIONS: Section[] = [
   { id: 'documentation_covenants', label: 'Legal & Covenants', icon: '📄', category: 'Legal' },
   { id: 'analysis_narrative', label: 'Analysis & Narrative', icon: '🖋️', category: 'Analysis' },
   { id: 'compliance_signoff', label: 'Sign-off & Compliance', icon: '✅', category: 'Closing' },
+  { id: 'source_documents', label: 'Source Documents', icon: '📂', category: 'Review' },
   { id: 'document_preview', label: 'Final Document Preview', icon: '👀', category: 'Review' },
 ];
 
@@ -82,6 +83,7 @@ export const INITIAL_DATA: CreditMemoData = {
     positiveCovenants: '', financialCovenants: [], eventsOfDefault: '', reportingReqs: ''
   },
   analysis: {
+    // Fixed: Initialized overview with empty strings instead of type names and used commas instead of semicolons
     overview: { companyDesc: '', recentEvents: '', sourcesUses: '', financingPlan: '' },
     financial: { moodyAnalysis: '', ratioAnalysis: '', capStructure: '', liquidity: '', debtMaturity: '' },
     leverage: '',
@@ -91,5 +93,6 @@ export const INITIAL_DATA: CreditMemoData = {
   compliance: {
     signOff: { name: '', title: '', date: '', approver: '' },
     legal: { declarationInterest: '', directors: '', illegalTying: '' }
-  }
+  },
+  fieldSources: {}
 };

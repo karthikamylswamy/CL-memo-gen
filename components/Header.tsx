@@ -4,9 +4,10 @@ import React from 'react';
 interface HeaderProps {
   isProcessing: boolean;
   extractedCount: number;
+  lastSaved: Date | null;
 }
 
-const Header: React.FC<HeaderProps> = ({ isProcessing, extractedCount }) => {
+const Header: React.FC<HeaderProps> = ({ isProcessing, extractedCount, lastSaved }) => {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
       <div className="flex items-center gap-4">
@@ -17,6 +18,13 @@ const Header: React.FC<HeaderProps> = ({ isProcessing, extractedCount }) => {
       </div>
       
       <div className="flex items-center gap-6">
+        {lastSaved && !isProcessing && (
+          <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+            Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        )}
+
         {isProcessing && (
           <div className="flex items-center gap-2 text-sm font-bold text-tdgreen animate-pulse">
             <svg className="animate-spin h-4 w-4 text-tdgreen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
