@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { CreditMemoData, SectionKey, SourceFile, PublicRating } from '../types';
 
@@ -9,30 +8,43 @@ interface SectionRendererProps {
   onChange: (updates: Partial<CreditMemoData>) => void;
 }
 
-const MarkdownTable = ({ content }: { content: string }) => {
-  const lines = content.split('\n');
+// Fixed: Add React.FC type to support 'key' prop in map iterators
+const MarkdownTable: React.FC<{ content: string }> = ({ content }) => {
+  const lines = content.trim().split('\n');
   const tableLines = lines.filter(l => l.includes('|'));
   
   if (tableLines.length < 2) return <div className="whitespace-pre-wrap">{content}</div>;
 
-  const parseRow = (row: string) => row.split('|').filter(c => c.trim() !== '' || row.indexOf('|') !== row.lastIndexOf('|')).map(c => c.trim());
+  const parseRow = (row: string) => {
+    const cells = row.split('|');
+    // Handle rows that start and end with |
+    if (cells[0].trim() === '') cells.shift();
+    if (cells[cells.length - 1].trim() === '') cells.pop();
+    return cells.map(c => c.trim());
+  };
   
-  const rows = tableLines.filter(l => !l.includes('---')).map(parseRow);
+  const rows = tableLines.filter(l => !l.match(/^[|:\s-]+$/)).map(parseRow);
+  if (rows.length === 0) return null;
+  
   const headers = rows[0];
   const body = rows.slice(1);
 
   return (
-    <div className="my-6 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
-      <table className="w-full text-left border-collapse bg-white">
+    <div className="my-6 overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+      <table className="w-full text-left border-collapse">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">
-            {headers.map((h, i) => <th key={i} className="p-3 text-[10px] font-black uppercase text-slate-500 tracking-widest">{h}</th>)}
+            {headers.map((h, i) => (
+              <th key={i} className="p-3 text-[10px] font-black uppercase text-slate-500 tracking-widest border-r border-slate-100 last:border-0">{h}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {body.map((row, i) => (
-            <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-              {row.map((cell, j) => <td key={j} className="p-3 text-sm font-bold text-slate-700">{cell}</td>)}
+            <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors last:border-0">
+              {row.map((cell, j) => (
+                <td key={j} className="p-3 text-sm font-bold text-slate-700 border-r border-slate-100 last:border-0">{cell}</td>
+              ))}
             </tr>
           ))}
         </tbody>
@@ -41,17 +53,65 @@ const MarkdownTable = ({ content }: { content: string }) => {
   );
 };
 
-const SmartNarrative = ({ text }: { text: string }) => {
+// Fixed: Add React.FC type for consistency
+const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text, files = [] }) => {
   if (!text) return null;
-  const parts = text.split(/(\|[^\n]+\|\n\|[\s-|\n]+)/g);
+
+  // Split by potential table blocks or image blocks
+  const parts = text.split(/(\n(?:\|.+?\|(?:\n|$))+|\!\[.+?\]\(.+?\))/g);
   
   return (
     <div className="space-y-4">
       {parts.map((part, i) => {
-        if (part.includes('|') && part.includes('\n')) {
-          // This part might be a table or start of one
+        if (!part.trim()) return null;
+
+        // Check if it's a table
+        if (part.trim().startsWith('|')) {
           return <MarkdownTable key={i} content={part} />;
         }
+
+        // Check if it's an image ![alt](filename)
+        const imageMatch = part.match(/\!\[(.+?)\]\((.+?)\)/);
+        if (imageMatch) {
+          const alt = imageMatch[1];
+          const filename = imageMatch[2];
+          const file = files.find(f => f.name.toLowerCase() === filename.toLowerCase());
+
+          if (file) {
+            const isImage = file.type.startsWith('image/');
+            return (
+              <div key={i} className="my-6 space-y-2">
+                <div className="text-[9px] font-black text-tdgreen uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-tdgreen animate-pulse"></span>
+                  Attachment: {alt} ({filename})
+                </div>
+                {isImage ? (
+                  <img src={file.dataUrl} alt={alt} className="max-w-full rounded-2xl border border-slate-200 shadow-lg" />
+                ) : (
+                  <div className="p-6 bg-slate-100 border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shadow-sm">📕</div>
+                      <div>
+                        <p className="text-xs font-black text-slate-800">{alt}</p>
+                        <p className="text-[9px] text-slate-400 font-bold uppercase">{filename}</p>
+                      </div>
+                    </div>
+                    <button className="text-[9px] font-black text-tdgreen uppercase tracking-[0.2em] border border-tdgreen/20 px-4 py-2 rounded-xl hover:bg-tdgreen/5 transition-all">
+                      Open PDF Exhibit
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          }
+          return (
+            <div key={i} className="text-[10px] text-rose-500 font-bold italic border-l-2 border-rose-200 pl-3 my-2">
+              [Image Reference Missing: {filename}]
+            </div>
+          );
+        }
+
+        // Standard text
         return <div key={i} className="whitespace-pre-wrap leading-relaxed">{part}</div>;
       })}
     </div>
@@ -60,7 +120,8 @@ const SmartNarrative = ({ text }: { text: string }) => {
 
 const getNested = (obj: any, path: string) => path.split('.').reduce((o, i) => (o && typeof o === 'object' ? o[i] : undefined), obj) ?? '';
 
-const SourceBadge = ({ filename }: { filename?: string }) => {
+// Fixed: Add React.FC type for consistency
+const SourceBadge: React.FC<{ filename?: string }> = ({ filename }) => {
   if (!filename) return null;
   return (
     <div className="group relative inline-flex ml-2">
@@ -77,7 +138,8 @@ const SourceBadge = ({ filename }: { filename?: string }) => {
   );
 };
 
-const Input = ({ label, value, onChange, source, type = "text", placeholder = "" }: { label: string, value: any, onChange: (val: any) => void, source?: string, type?: string, placeholder?: string }) => (
+// Fixed: Add React.FC type for consistency
+const Input: React.FC<{ label: string, value: any, onChange: (val: any) => void, source?: string, type?: string, placeholder?: string }> = ({ label, value, onChange, source, type = "text", placeholder = "" }) => (
   <div className="space-y-1.5">
     <div className="flex justify-between items-center">
       <div className="flex items-center">
@@ -97,7 +159,8 @@ const Input = ({ label, value, onChange, source, type = "text", placeholder = ""
   </div>
 );
 
-const TextArea = ({ label, value, onChange, source, rows = 4, className = "" }: { label: string, value: string, onChange: (val: string) => void, source?: string, rows?: number, className?: string }) => (
+// Fixed: Add React.FC type for consistency
+const TextArea: React.FC<{ label: string, value: string, onChange: (val: string) => void, source?: string, rows?: number, className?: string }> = ({ label, value, onChange, source, rows = 4, className = "" }) => (
   <div className={`space-y-1.5 ${className}`}>
     <div className="flex justify-between items-center">
       <div className="flex items-center">
@@ -155,7 +218,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     <div className="py-6">
       <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 border-l-4 border-tdgreen pl-3">{label}</div>
       <div className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-inner">
-        <SmartNarrative text={value} />
+        <SmartNarrative text={value} files={files} />
       </div>
     </div>
   );
@@ -177,20 +240,36 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
             <div className="lg:col-span-2 space-y-4">
-              {[ { key: 'API_KEY', label: 'Gemini API Key', p: 'google' }, { key: 'OPENAI_API_KEY', label: 'OpenAI API Key', p: 'openai' } ].map(env => (
+              {[ { key: 'API_KEY', label: 'Gemini API Key (Env Only)', p: 'google' }, { key: 'OPENAI_API_KEY', label: 'OpenAI API Key', p: 'openai' } ].map(env => (
                 <div key={env.key} className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${env.p === 'google' ? 'bg-tdgreen/20 text-tdgreen' : 'bg-blue-500/20 text-blue-400'}`}>{env.p[0].toUpperCase()}</div>
                     <div><p className="text-xs font-black text-slate-200">{env.label}</p><code className="text-[9px] text-slate-500">{env.key}</code></div>
                   </div>
-                  <div className={`w-2 h-2 rounded-full ${(process as any).env[env.key] || (env.key === 'OPENAI_API_KEY' && localStorage.getItem('MAPLE_OPENAI_API_KEY')) ? 'bg-tdgreen animate-pulse' : 'bg-rose-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${(env.key === 'API_KEY' ? process.env.API_KEY : (getNested(process, `env.${env.key}`) || localStorage.getItem('MAPLE_OPENAI_API_KEY'))) ? 'bg-tdgreen animate-pulse' : 'bg-rose-500'}`}></div>
                 </div>
               ))}
             </div>
             <div className="bg-slate-800/60 border border-slate-700 rounded-3xl p-6">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4">OpenAI Override</h4>
-              <input type="password" placeholder="sk-..." value={openaiKeyInput} onChange={e => setOpenaiKeyInput(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-300 mb-4" />
-              <button onClick={() => { localStorage.setItem('MAPLE_OPENAI_API_KEY', openaiKeyInput); window.location.reload(); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase">Save Override</button>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4">OpenAI Key Override</h4>
+              <p className="text-[10px] text-slate-400 mb-4 leading-relaxed italic">Set your key here to override the environment. It will be stored in your browser's local storage.</p>
+              <input 
+                type="password" 
+                placeholder="sk-..." 
+                value={openaiKeyInput} 
+                onChange={e => setOpenaiKeyInput(e.target.value)} 
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-300 mb-4 focus:ring-2 focus:ring-blue-500 outline-none" 
+              />
+              <button 
+                onClick={() => { 
+                  localStorage.setItem('MAPLE_OPENAI_API_KEY', openaiKeyInput); 
+                  alert("Key saved. Application will reload to apply changes.");
+                  window.location.reload(); 
+                }} 
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-lg shadow-blue-600/20"
+              >
+                Save & Reload
+              </button>
             </div>
           </div>
         </div>
@@ -227,8 +306,24 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <p className="text-slate-500 font-bold mt-2 text-sm uppercase">Institutional Banking • Syndicate Credit</p>
         </div>
         <section><PreviewHeader title="1. Recommendation" /><PreviewTextArea label="Summary" value={getNested(data, 'analysis.justification.recommendation')} /></section>
-        <section><PreviewHeader title="2. Borrower" /><div className="grid grid-cols-2 gap-x-12 px-2"><PreviewRow label="Name" value={getNested(data, 'primaryBorrower.borrowerName')} /><PreviewRow label="Group" value={getNested(data, 'primaryBorrower.group')} /></div></section>
-        <section><PreviewHeader title="3. Facility" /><div className="grid grid-cols-2 gap-x-12 px-2"><PreviewRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} /><PreviewRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} /></div></section>
+        <section>
+          <PreviewHeader title="2. Borrower" />
+          <div className="grid grid-cols-2 gap-x-12 px-2">
+            <PreviewRow label="Name" value={getNested(data, 'primaryBorrower.borrowerName')} />
+            <PreviewRow label="Group" value={getNested(data, 'primaryBorrower.group')} />
+            <PreviewRow label="Originating Office" value={getNested(data, 'primaryBorrower.originatingOffice')} />
+            <PreviewRow label="Classification" value={getNested(data, 'primaryBorrower.accountClassification')} />
+          </div>
+        </section>
+        <section>
+          <PreviewHeader title="3. Facility Details" />
+          <div className="grid grid-cols-2 gap-x-12 px-2">
+            <PreviewRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} />
+            <PreviewRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} />
+            <PreviewRow label="Maturity" value={getNested(data, 'facilityDetails.terms.maturity')} />
+            <PreviewRow label="Fee" value={getNested(data, 'facilityDetails.rates.fee')} />
+          </div>
+        </section>
         <section><PreviewHeader title="4. Analysis" /><PreviewTextArea label="Company Overview" value={getNested(data, 'analysis.overview.companyDesc')} /></section>
       </div>
     );
@@ -236,15 +331,122 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
 
   switch (section) {
     case 'borrower_details':
-      return <div className="grid grid-cols-2 gap-8">{wrapInput("Borrower Name", "primaryBorrower.borrowerName")}{wrapInput("Group", "primaryBorrower.group")}<Header title="Policy" /><div className="col-span-full grid grid-cols-3 gap-5">{wrapCheckbox("Quarterly Review", "primaryBorrower.quarterlyReview")}{wrapCheckbox("Leveraged", "primaryBorrower.leveragedLending")}{wrapCheckbox("Strategic", "primaryBorrower.strategicLoan")}</div></div>;
+      return (
+        <div className="grid grid-cols-2 gap-8">
+          {wrapInput("Borrower Name", "primaryBorrower.borrowerName")}
+          {wrapInput("Group", "primaryBorrower.group")}
+          {wrapInput("Originating Office", "primaryBorrower.originatingOffice")}
+          {wrapInput("Account Classification", "primaryBorrower.accountClassification")}
+          <Header title="Policy & Status" />
+          <div className="col-span-full grid grid-cols-3 gap-5">
+            {wrapCheckbox("Quarterly Review", "primaryBorrower.quarterlyReview")}
+            {wrapCheckbox("Leveraged", "primaryBorrower.leveragedLending")}
+            {wrapCheckbox("Strategic", "primaryBorrower.strategicLoan")}
+            {wrapCheckbox("Credit Exception", "primaryBorrower.creditException")}
+            {wrapCheckbox("Covenant Lite", "primaryBorrower.covenantLite")}
+          </div>
+        </div>
+      );
     case 'purpose':
-      return <div className="space-y-8">{wrapTextArea("Business Purpose", "purpose.businessPurpose")}{wrapInput("Review Status", "purpose.annualReviewStatus")}</div>;
+      return (
+        <div className="space-y-8">
+          {wrapTextArea("Business Purpose", "purpose.businessPurpose")}
+          {wrapTextArea("Adjudication Considerations", "purpose.adjudicationConsiderations")}
+          {wrapInput("Annual Review Status", "purpose.annualReviewStatus")}
+        </div>
+      );
     case 'credit_exposure':
-      return <div className="grid grid-cols-3 gap-6">{wrapInput("Requested", "creditPosition.creditRequested", "number")}{wrapInput("Present", "creditPosition.presentPosition", "number")}{wrapInput("Trading", "creditPosition.tradingLine", "number")}</div>;
+      return (
+        <div className="grid grid-cols-3 gap-6">
+          {wrapInput("Requested", "creditPosition.creditRequested", "number")}
+          {wrapInput("Present Position", "creditPosition.presentPosition", "number")}
+          {wrapInput("Previous Auth", "creditPosition.previousAuthorization", "number")}
+          {wrapInput("Trading Line", "creditPosition.tradingLine", "number")}
+          {wrapInput("Committed > 1yr", "creditPosition.committedOverOneYear", "number")}
+        </div>
+      );
     case 'financials_raroc':
-      return <div className="space-y-10"><div className="bg-tdgreen rounded-3xl p-10 text-white grid grid-cols-2 gap-8"><div><span className="text-[10px] font-black uppercase tracking-widest opacity-60">Econ RAROC %</span><input type="number" className="bg-transparent text-white text-4xl font-black w-full outline-none" value={getNested(data, 'financialInfo.raroc.economicRaroc')} onChange={e => setNested('financialInfo.raroc.economicRaroc', Number(e.target.value))} /></div></div></div>;
+      return (
+        <div className="space-y-10">
+          <div className="bg-tdgreen rounded-3xl p-10 text-white grid grid-cols-2 gap-8 shadow-xl shadow-tdgreen/10">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Economic RAROC %</span>
+              <input 
+                type="number" 
+                className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" 
+                value={getNested(data, 'financialInfo.raroc.economicRaroc')} 
+                onChange={e => setNested('financialInfo.raroc.economicRaroc', Number(e.target.value))} 
+              />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Relationship RAROC %</span>
+              <input 
+                type="number" 
+                className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" 
+                value={getNested(data, 'financialInfo.raroc.relationshipRaroc')} 
+                onChange={e => setNested('financialInfo.raroc.relationshipRaroc', Number(e.target.value))} 
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-8">
+             {wrapInput("LCC Status", "financialInfo.raroc.lccStatus")}
+             {wrapInput("Economic Capital", "financialInfo.raroc.economicCapital", "number")}
+          </div>
+        </div>
+      );
+    case 'risk_ratings':
+      return (
+        <div className="grid grid-cols-2 gap-8">
+          {wrapInput("Proposed BRR", "riskAssessment.borrowerRating.proposedBrr")}
+          {wrapInput("Current BRR", "riskAssessment.borrowerRating.currentBrr")}
+          {wrapInput("Risk Analyst", "riskAssessment.borrowerRating.riskAnalyst")}
+          <Header title="Risk Profile" />
+          {wrapInput("Industry Risk", "riskAssessment.details.industryRisk")}
+          {wrapInput("Business Risk", "riskAssessment.details.businessRisk")}
+          {wrapInput("Financial Risk", "riskAssessment.details.financialRisk")}
+          {wrapInput("Security", "riskAssessment.details.security")}
+        </div>
+      );
+    case 'facility_info':
+      return (
+        <div className="space-y-10">
+           <Header title="Pricing" />
+           <div className="grid grid-cols-4 gap-6">
+             {wrapInput("Margin", "facilityDetails.rates.margin")}
+             {wrapInput("Fee", "facilityDetails.rates.fee")}
+             {wrapInput("All-In", "facilityDetails.rates.allIn")}
+             {wrapInput("Upfront", "facilityDetails.rates.upfront")}
+           </div>
+           <Header title="Terms" />
+           <div className="grid grid-cols-3 gap-6">
+             {wrapInput("Tenor", "facilityDetails.terms.tenor")}
+             {wrapInput("Maturity", "facilityDetails.terms.maturity")}
+             {wrapInput("Extension", "facilityDetails.terms.extension")}
+           </div>
+        </div>
+      );
+    case 'documentation_covenants':
+      return (
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 gap-8">
+            {wrapInput("Agreement Type", "documentation.agreementType")}
+            {wrapInput("Jurisdiction", "documentation.jurisdiction")}
+          </div>
+          {wrapTextArea("Financial Covenants", "documentation.financialCovenants")}
+          {wrapTextArea("Negative Covenants", "documentation.negativeCovenants")}
+        </div>
+      );
     case 'analysis_narrative':
-      return <div className="space-y-12"><Header title="Overview" />{wrapTextArea("Overview", "analysis.overview.companyDesc")}<Header title="Recommendation" /><div className="p-8 bg-tdgreen rounded-[2rem] text-white">{wrapTextArea("Summary", "analysis.justification.recommendation", 12)}</div></div>;
+      return (
+        <div className="space-y-12">
+          <Header title="Executive Summary & Recommendation" />
+          <div className="p-8 bg-tdgreen/5 rounded-[2rem] border-2 border-tdgreen/10">
+            {wrapTextArea("Narrative Summary", "analysis.justification.recommendation", 12)}
+          </div>
+          <Header title="Overview" />
+          {wrapTextArea("Company Overview", "analysis.overview.companyDesc", 6)}
+        </div>
+      );
     default:
       return null;
   }
