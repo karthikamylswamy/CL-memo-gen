@@ -1,30 +1,43 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { ChatMessage, CreditMemoData, SourceFile } from '../types';
+import { ChatMessage, CreditMemoData, SourceFile, AiModelId } from '../types';
+import { AVAILABLE_MODELS } from '../constants';
+import { getOpenAiKey } from '../services/agentService';
 
 interface ChatSidebarProps {
   data: CreditMemoData;
   files: SourceFile[];
   isOpen: boolean;
+  selectedModelId: AiModelId;
   onToggle: () => void;
   onPreviewFile: (file: SourceFile) => void;
 }
 
-const ChatSidebar: React.FC<ChatSidebarProps> = ({ data, files, isOpen, onToggle, onPreviewFile }) => {
+const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
+  data, 
+  files, 
+  isOpen, 
+  selectedModelId,
+  onToggle, 
+  onPreviewFile 
+}) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'files'>('chat');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       role: 'model',
-      text: "Hello. I'm your AI Credit Assistant. I've indexed the uploaded deal documents and the current memo draft. How can I help you refine this analysis today?",
+      text: "Hello. I'm your AI Credit Assistant. I can leverage the provisioned intelligence model to help refine this analysis. How can I assist you today?",
       timestamp: new Date()
     }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Gemini specific refs
   const chatRef = useRef<Chat | null>(null);
+  const currentModel = AVAILABLE_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_MODELS[0];
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -32,24 +45,23 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ data, files, isOpen, onToggle
     }
   }, [messages, activeTab]);
 
-  const initChat = async () => {
+  // Re-initialize chat if the provider or model changes
+  useEffect(() => {
+    chatRef.current = null; 
+  }, [selectedModelId]);
+
+  const initGeminiChat = async () => {
+    if (!process.env.API_KEY) throw new Error("Google API Key missing.");
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const systemInstruction = `
-      You are a world-class Senior Syndicate Credit Analyst. 
-      You are assisting a colleague in building a Credit Memo.
-      
-      CONTEXT:
-      - Current Memo JSON: ${JSON.stringify(data)}
-      - Uploaded Files: ${files.map(f => f.name).join(', ')}
-      
-      YOUR GOAL:
-      1. Answer questions about the borrower's financials based on the documents.
-      2. Help draft sections of the memo.
-      3. Verify data with precision.
+      Senior Syndicate Credit Analyst Persona.
+      Context: ${JSON.stringify(data)}
+      Documents: ${files.map(f => f.name).join(', ')}
+      Goal: Assist in memo building, verify data, and synthesize risks.
     `;
 
     chatRef.current = ai.chats.create({
-      model: 'gemini-3-flash-preview',
+      model: selectedModelId,
       config: {
         systemInstruction,
         temperature: 0.1,
@@ -72,41 +84,73 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ data, files, isOpen, onToggle
     setIsTyping(true);
 
     try {
-      if (!chatRef.current) await initChat();
-      
-      const fileParts = files.slice(0, 3).map(f => ({
-        inlineData: {
-          data: f.dataUrl.split(',')[1],
-          mimeType: f.type
+      if (currentModel.provider === 'google') {
+        if (!chatRef.current) await initGeminiChat();
+        
+        const fileParts = files.slice(0, 3).map(f => ({
+          inlineData: {
+            data: f.dataUrl.split(',')[1],
+            mimeType: f.type
+          }
+        }));
+
+        const result = await chatRef.current!.sendMessageStream({
+          message: {
+            parts: [...fileParts, { text: input }]
+          } as any
+        });
+
+        const modelId = (Date.now() + 1).toString();
+        setMessages(prev => [...prev, { id: modelId, role: 'model', text: '', timestamp: new Date() }]);
+
+        let fullText = '';
+        for await (const chunk of result) {
+          const chunkText = (chunk as GenerateContentResponse).text || '';
+          fullText += chunkText;
+          setMessages(prev => prev.map(m => m.id === modelId ? { ...m, text: fullText } : m));
         }
-      }));
+      } else {
+        // OpenAI Chat
+        const apiKey = getOpenAiKey();
+        if (!apiKey) throw new Error("Missing OpenAI API Key. Please set it in System Settings.");
 
-      const messageContent = {
-        parts: [
-          ...fileParts,
-          { text: input }
-        ]
-      };
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: selectedModelId,
+            messages: [
+              { role: "system", content: `Credit Analyst Persona. Context: ${JSON.stringify(data)}` },
+              { role: "user", content: input }
+            ],
+            temperature: 0.1
+          })
+        });
 
-      const result = await chatRef.current!.sendMessageStream({
-        message: messageContent as any
-      });
+        if (!response.ok) {
+           const err = await response.json();
+           throw new Error(err.error?.message || "OpenAI communication failed.");
+        }
 
-      const modelId = (Date.now() + 1).toString();
-      setMessages(prev => [...prev, { id: modelId, role: 'model', text: '', timestamp: new Date() }]);
-
-      let fullText = '';
-      for await (const chunk of result) {
-        const chunkText = (chunk as GenerateContentResponse).text || '';
-        fullText += chunkText;
-        setMessages(prev => prev.map(m => m.id === modelId ? { ...m, text: fullText } : m));
+        const result = await response.json();
+        const modelText = result.choices[0].message.content;
+        
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: 'model',
+          text: modelText,
+          timestamp: new Date()
+        }]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
-        text: "I encountered an error accessing the document context.",
+        text: `Error: ${error.message || "The provisioned model encountered an error. Please verify your provider API keys."}`,
         timestamp: new Date()
       }]);
     } finally {
@@ -122,8 +166,15 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ data, files, isOpen, onToggle
     >
       <div className="h-16 border-b border-slate-100 flex items-center justify-between px-6 bg-slate-50/50 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-tdgreen text-white flex items-center justify-center text-sm font-black shadow-lg shadow-tdgreen/20">AI</div>
-          <h3 className="font-black text-slate-800 tracking-tight text-xs uppercase">Credit Hub</h3>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black shadow-lg uppercase tracking-tighter text-white ${currentModel.provider === 'google' ? 'bg-tdgreen shadow-tdgreen/20' : 'bg-blue-600 shadow-blue-600/20'}`}>
+            {currentModel.provider === 'google' ? 'G' : 'O'}
+          </div>
+          <div className="flex flex-col">
+            <h3 className="font-black text-slate-800 tracking-tight text-[10px] uppercase leading-none">Credit Hub</h3>
+            <span className={`text-[8px] font-bold uppercase tracking-widest mt-0.5 ${currentModel.provider === 'google' ? 'text-tdgreen' : 'text-blue-600'}`}>
+              Model: {currentModel.label}
+            </span>
+          </div>
         </div>
         <button 
           onClick={onToggle}
@@ -137,7 +188,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ data, files, isOpen, onToggle
         <button 
           onClick={() => setActiveTab('chat')}
           className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl ${
-            activeTab === 'chat' ? 'bg-white text-tdgreen shadow-sm' : 'text-slate-400 hover:text-slate-600'
+            activeTab === 'chat' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           Assistant
@@ -145,7 +196,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ data, files, isOpen, onToggle
         <button 
           onClick={() => setActiveTab('files')}
           className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl ${
-            activeTab === 'files' ? 'bg-white text-tdgreen shadow-sm' : 'text-slate-400 hover:text-slate-600'
+            activeTab === 'files' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           Files ({files.length})
@@ -171,9 +222,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ data, files, isOpen, onToggle
             ))}
             {isTyping && (
               <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100 self-start">
-                <div className="w-1.5 h-1.5 bg-tdgreen rounded-full animate-bounce"></div>
-                <div className="w-1.5 h-1.5 bg-tdgreen rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-1.5 h-1.5 bg-tdgreen rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${currentModel.provider === 'google' ? 'bg-tdgreen' : 'bg-blue-600'}`}></div>
+                <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${currentModel.provider === 'google' ? 'bg-tdgreen' : 'bg-blue-600'}`} style={{ animationDelay: '150ms' }}></div>
+                <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${currentModel.provider === 'google' ? 'bg-tdgreen' : 'bg-blue-600'}`} style={{ animationDelay: '300ms' }}></div>
               </div>
             )}
           </div>
@@ -203,15 +254,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ data, files, isOpen, onToggle
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-slate-100/50 flex items-center justify-between">
-                    <span className="text-[8px] font-black text-tdgreen uppercase tracking-widest flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-tdgreen"></div>
-                      Indexed by AI
-                    </span>
-                    <button className="text-[8px] font-black text-slate-400 uppercase tracking-widest hover:text-tdgreen transition-colors">
-                      Quick Preview →
-                    </button>
-                  </div>
                 </div>
               ))
             )}
@@ -231,15 +273,15 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ data, files, isOpen, onToggle
                   handleSend();
                 }
               }}
-              placeholder="Ask about the deal..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-tdgreen/10 focus:border-tdgreen outline-none transition-all pr-14 resize-none shadow-inner min-h-[90px]"
+              placeholder={`Ask ${currentModel.label}...`}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all pr-14 resize-none shadow-inner min-h-[90px]"
               rows={2}
             />
             <button 
               onClick={handleSend}
               disabled={!input.trim() || isTyping}
               className={`absolute right-3 bottom-3 p-3 rounded-xl transition-all ${
-                input.trim() && !isTyping ? 'bg-tdgreen text-white hover:bg-tdgreen-dark' : 'bg-slate-200 text-slate-400'
+                input.trim() && !isTyping ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-200 text-slate-400'
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>

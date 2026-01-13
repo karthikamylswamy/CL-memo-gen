@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { CreditMemoData, SectionKey, SourceFile } from './types';
-import { SECTIONS, INITIAL_DATA } from './constants';
+import { CreditMemoData, SectionKey, SourceFile, AiModelId } from './types';
+import { SECTIONS, INITIAL_DATA, AVAILABLE_MODELS } from './constants';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SectionRenderer from './components/SectionRenderer';
@@ -36,6 +36,7 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [previewFile, setPreviewFile] = useState<SourceFile | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState<AiModelId>('gemini-3-flash-preview');
 
   useEffect(() => {
     const init = async () => {
@@ -83,9 +84,9 @@ const App: React.FC = () => {
     setUploadedFiles(prev => [...prev, ...loadedSourceFiles]);
 
     try {
-      const { data: extractedData, fieldSources } = await processDocumentWithAgents(files);
+      // Pass the selected model ID to the agent service
+      const { data: extractedData, fieldSources } = await processDocumentWithAgents(files, selectedModelId);
       
-      // Use deep merge to prevent overwriting missing nested properties (like overview) with undefined
       const newData = deepMerge(data, extractedData);
       newData.fieldSources = {
         ...(data.fieldSources || {}),
@@ -96,7 +97,7 @@ const App: React.FC = () => {
       setExtractedCount(Object.keys(fieldSources).length);
     } catch (error) {
       console.error("AI extraction error:", error);
-      alert("Extraction failed. Check your API key.");
+      alert("Extraction failed. Ensure your API keys are valid.");
     } finally {
       setIsProcessing(false);
     }
@@ -126,6 +127,8 @@ const App: React.FC = () => {
           isProcessing={isProcessing} 
           extractedCount={extractedCount}
           lastSaved={lastSaved}
+          selectedModelId={selectedModelId}
+          onModelChange={setSelectedModelId}
         />
         
         <div className="bg-white border-b border-slate-200 px-8 py-4 z-10 shadow-sm flex items-center justify-between">
@@ -191,7 +194,7 @@ const App: React.FC = () => {
               )}
               <button 
                 className="px-10 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-lg shadow-slate-200/20 font-bold text-sm"
-                onClick={() => alert("Workspace saved.")}
+                onClick={() => alert("Workspace state saved to local storage.")}
               >
                 Force Save
               </button>
@@ -204,6 +207,7 @@ const App: React.FC = () => {
         data={data}
         files={uploadedFiles}
         isOpen={isChatOpen}
+        selectedModelId={selectedModelId}
         onToggle={() => setIsChatOpen(false)}
         onPreviewFile={setPreviewFile}
       />

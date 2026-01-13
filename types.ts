@@ -22,6 +22,22 @@ export interface PublicRating {
   updatedAt: string;
 }
 
+export type AiProvider = 'google' | 'openai';
+
+export type AiModelId = 
+  | 'gemini-3-flash-preview' 
+  | 'gemini-3-pro-preview' 
+  | 'gpt-4o' 
+  | 'gpt-4o-mini';
+
+export interface AiModel {
+  id: AiModelId;
+  provider: AiProvider;
+  label: string;
+  description: string;
+  badge: string;
+}
+
 export interface CreditMemoData {
   primaryBorrower: {
     borrowerName: string;
@@ -173,7 +189,8 @@ export type SectionKey =
   | 'analysis_narrative'
   | 'compliance_signoff'
   | 'source_documents'
-  | 'document_preview';
+  | 'document_preview'
+  | 'settings';
 
 export interface Section {
   id: SectionKey;

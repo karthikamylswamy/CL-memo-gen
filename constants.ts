@@ -1,5 +1,36 @@
 
-import { Section, CreditMemoData } from './types';
+import { Section, CreditMemoData, AiModel } from './types';
+
+export const AVAILABLE_MODELS: AiModel[] = [
+  { 
+    id: 'gemini-3-flash-preview', 
+    provider: 'google',
+    label: 'Gemini Flash 3', 
+    description: 'Fastest for extraction & chat.',
+    badge: 'Flash'
+  },
+  { 
+    id: 'gemini-3-pro-preview', 
+    provider: 'google',
+    label: 'Gemini Pro 3', 
+    description: 'Advanced reasoning for complex synthesis.',
+    badge: 'Pro'
+  },
+  { 
+    id: 'gpt-4o', 
+    provider: 'openai',
+    label: 'GPT-4o', 
+    description: 'High intelligence and multimodal support.',
+    badge: 'OpenAI'
+  },
+  { 
+    id: 'gpt-4o-mini', 
+    provider: 'openai',
+    label: 'GPT-4o Mini', 
+    description: 'Fast and efficient for smaller tasks.',
+    badge: 'Mini'
+  }
+];
 
 export const SECTIONS: Section[] = [
   { id: 'borrower_details', label: 'Primary Borrower', icon: '👤', category: 'General' },
@@ -13,6 +44,7 @@ export const SECTIONS: Section[] = [
   { id: 'compliance_signoff', label: 'Sign-off & Compliance', icon: '✅', category: 'Closing' },
   { id: 'source_documents', label: 'Source Documents', icon: '📂', category: 'Review' },
   { id: 'document_preview', label: 'Final Document Preview', icon: '👀', category: 'Review' },
+  { id: 'settings', label: 'System Settings', icon: '⚙️', category: 'System' },
 ];
 
 export const INITIAL_DATA: CreditMemoData = {
