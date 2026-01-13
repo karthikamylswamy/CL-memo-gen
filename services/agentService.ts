@@ -37,7 +37,7 @@ async function callOpenAI(modelId: string, messages: any[], responseFormat?: any
   const apiKey = getOpenAiKey();
   
   if (!apiKey) {
-    throw new Error("OpenAI API Key is missing. Please configure it in System Settings (LocalStorage).");
+    throw new Error("OpenAI API Key is missing. Please configure it in System Settings.");
   }
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -310,9 +310,9 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
 
       REQUIREMENTS:
       1. Write a professional, detailed executive recommendation for this syndicated loan.
-      2. Include Markdown Tables (| Column |) to summarize key deal terms or financial stats.
-      3. If applicable, reference exhibits using markdown image syntax: ![Exhibit Description](FILENAME).
-      4. Format with bold headers and clear sections.`;
+      2. Use Markdown Tables (| Column |) to summarize key deal terms or comparative financial stats.
+      3. Reference relevant document exhibits using markdown image syntax: ![Exhibit Description](FILENAME).
+      4. Format with bold headers and clear sections. Focus on risk mitigation and fundamental credit strength.`;
 
     if (modelConfig.provider === 'google') {
       const response = await callGemini(modelId, [

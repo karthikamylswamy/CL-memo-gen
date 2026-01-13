@@ -17,7 +17,6 @@ const MarkdownTable: React.FC<{ content: string }> = ({ content }) => {
 
   const parseRow = (row: string) => {
     const cells = row.split('|');
-    // Handle rows that start and end with |
     if (cells[0].trim() === '') cells.shift();
     if (cells[cells.length - 1].trim() === '') cells.pop();
     return cells.map(c => c.trim());
@@ -55,27 +54,17 @@ const MarkdownTable: React.FC<{ content: string }> = ({ content }) => {
 
 const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text, files = [] }) => {
   if (!text) return null;
-
-  // Split by potential table blocks or image blocks
   const parts = text.split(/(\n(?:\|.+?\|(?:\n|$))+|\!\[.+?\]\(.+?\))/g);
-  
   return (
     <div className="space-y-4">
       {parts.map((part, i) => {
         if (!part.trim()) return null;
-
-        // Check if it's a table
-        if (part.trim().startsWith('|')) {
-          return <MarkdownTable key={i} content={part} />;
-        }
-
-        // Check if it's an image ![alt](filename)
+        if (part.trim().startsWith('|')) return <MarkdownTable key={i} content={part} />;
         const imageMatch = part.match(/\!\[(.+?)\]\((.+?)\)/);
         if (imageMatch) {
           const alt = imageMatch[1];
           const filename = imageMatch[2];
           const file = files.find(f => f.name.toLowerCase() === filename.toLowerCase());
-
           if (file) {
             const isImage = file.type.startsWith('image/');
             return (
@@ -103,14 +92,8 @@ const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text
               </div>
             );
           }
-          return (
-            <div key={i} className="text-[10px] text-rose-500 font-bold italic border-l-2 border-rose-200 pl-3 my-2">
-              [Image Reference Missing: {filename}]
-            </div>
-          );
+          return <div key={i} className="text-[10px] text-rose-500 font-bold italic border-l-2 border-rose-200 pl-3 my-2">[Image Reference Missing: {filename}]</div>;
         }
-
-        // Standard text
         return <div key={i} className="whitespace-pre-wrap leading-relaxed">{part}</div>;
       })}
     </div>
@@ -177,6 +160,7 @@ const TextArea: React.FC<{ label: string, value: string, onChange: (val: string)
 
 const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files = [], onChange }) => {
   const [selectedFile, setSelectedFile] = useState<SourceFile | null>(null);
+  const [openaiKeyInput, setOpenaiKeyInput] = useState(localStorage.getItem('MAPLE_OPENAI_API_KEY') || '');
 
   const setNested = (path: string, val: any) => {
     const keys = path.split('.');
@@ -226,6 +210,62 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     updatedRatings[index] = { ...updatedRatings[index], [field]: value };
     setNested('riskAssessment.publicRatings', updatedRatings);
   };
+
+  if (section === 'settings') {
+    return (
+      <div className="space-y-10 animate-in fade-in duration-700">
+        <div className="p-8 bg-slate-900 rounded-[2rem] text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-tdgreen/10 blur-[100px] rounded-full -mr-32 -mt-32"></div>
+          <div className="flex items-center gap-4 mb-10 relative z-10">
+            <div className="w-14 h-14 bg-tdgreen rounded-2xl flex items-center justify-center text-3xl">⚙️</div>
+            <div>
+              <h3 className="text-2xl font-black tracking-tight">System Configuration</h3>
+              <p className="text-slate-400 text-sm">Manage API endpoints and overrides.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs bg-tdgreen/20 text-tdgreen">G</div>
+                  <div><p className="text-xs font-black text-slate-200">Gemini API (Primary)</p><code className="text-[9px] text-slate-500">process.env.API_KEY</code></div>
+                </div>
+                <div className={`w-2 h-2 rounded-full ${process.env.API_KEY ? 'bg-tdgreen animate-pulse' : 'bg-rose-500'}`}></div>
+              </div>
+              <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs bg-blue-500/20 text-blue-400">O</div>
+                  <div><p className="text-xs font-black text-slate-200">OpenAI API (Optional)</p><code className="text-[9px] text-slate-500">localStorage Override</code></div>
+                </div>
+                <div className={`w-2 h-2 rounded-full ${(getNested(process, `env.OPENAI_API_KEY`) || localStorage.getItem('MAPLE_OPENAI_API_KEY')) ? 'bg-blue-500 animate-pulse' : 'bg-rose-500'}`}></div>
+              </div>
+            </div>
+            <div className="bg-slate-800/60 border border-slate-700 rounded-3xl p-6">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4">Update OpenAI Key</h4>
+              <p className="text-[10px] text-slate-400 mb-4 leading-relaxed italic">Store your OpenAI key in localStorage for session persistence.</p>
+              <input 
+                type="password" 
+                placeholder="sk-..." 
+                value={openaiKeyInput} 
+                onChange={e => setOpenaiKeyInput(e.target.value)} 
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-300 mb-4 focus:ring-2 focus:ring-blue-500 outline-none" 
+              />
+              <button 
+                onClick={() => { 
+                  localStorage.setItem('MAPLE_OPENAI_API_KEY', openaiKeyInput); 
+                  alert("OpenAI Key saved successfully.");
+                  window.location.reload(); 
+                }} 
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-lg"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (section === 'source_documents') {
     return (
@@ -371,21 +411,11 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <div className="bg-tdgreen rounded-3xl p-10 text-white grid grid-cols-2 gap-8 shadow-xl shadow-tdgreen/10">
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Economic RAROC %</span>
-              <input 
-                type="number" 
-                className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" 
-                value={getNested(data, 'financialInfo.raroc.economicRaroc')} 
-                onChange={e => setNested('financialInfo.raroc.economicRaroc', Number(e.target.value))} 
-              />
+              <input type="number" className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" value={getNested(data, 'financialInfo.raroc.economicRaroc')} onChange={e => setNested('financialInfo.raroc.economicRaroc', Number(e.target.value))} />
             </div>
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Relationship RAROC %</span>
-              <input 
-                type="number" 
-                className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" 
-                value={getNested(data, 'financialInfo.raroc.relationshipRaroc')} 
-                onChange={e => setNested('financialInfo.raroc.relationshipRaroc', Number(e.target.value))} 
-              />
+              <input type="number" className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" value={getNested(data, 'financialInfo.raroc.relationshipRaroc')} onChange={e => setNested('financialInfo.raroc.relationshipRaroc', Number(e.target.value))} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-8">
@@ -405,7 +435,6 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             {wrapInput("New RA / Policy", "riskAssessment.borrowerRating.newRaPolicy")}
             {wrapInput("RA / Policy Model", "riskAssessment.borrowerRating.raPolicyModel")}
           </div>
-
           <Header title="Agency Rating" />
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200">
@@ -415,7 +444,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                   <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Issuer Rating</th>
                   <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Senior Unsecured Notes</th>
                   <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Outlook</th>
-                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Last Updated Time</th>
+                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Last Updated</th>
                 </tr>
               </thead>
               <tbody>
@@ -423,47 +452,22 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                   <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-all">
                     <td className="p-4 font-black text-slate-800 text-sm">{rating.agency}</td>
                     <td className="p-2">
-                      <input 
-                        type="text" 
-                        value={rating.issuerRating || ''} 
-                        onChange={(e) => handleRatingChange(i, 'issuerRating', e.target.value)}
-                        placeholder="Rating"
-                        className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700"
-                      />
+                      <input type="text" value={rating.issuerRating || ''} onChange={(e) => handleRatingChange(i, 'issuerRating', e.target.value)} placeholder="Rating" className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700" />
                     </td>
                     <td className="p-2">
-                      <input 
-                        type="text" 
-                        value={rating.seniorUnsecured || ''} 
-                        onChange={(e) => handleRatingChange(i, 'seniorUnsecured', e.target.value)}
-                        placeholder="Notes"
-                        className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700"
-                      />
+                      <input type="text" value={rating.seniorUnsecured || ''} onChange={(e) => handleRatingChange(i, 'seniorUnsecured', e.target.value)} placeholder="Notes" className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700" />
                     </td>
                     <td className="p-2">
-                      <input 
-                        type="text" 
-                        value={rating.outlook || ''} 
-                        onChange={(e) => handleRatingChange(i, 'outlook', e.target.value)}
-                        placeholder="Outlook"
-                        className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700"
-                      />
+                      <input type="text" value={rating.outlook || ''} onChange={(e) => handleRatingChange(i, 'outlook', e.target.value)} placeholder="Outlook" className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700" />
                     </td>
                     <td className="p-2">
-                      <input 
-                        type="text" 
-                        value={rating.updatedAt || ''} 
-                        onChange={(e) => handleRatingChange(i, 'updatedAt', e.target.value)}
-                        placeholder="Date"
-                        className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-500"
-                      />
+                      <input type="text" value={rating.updatedAt || ''} onChange={(e) => handleRatingChange(i, 'updatedAt', e.target.value)} placeholder="Date" className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-500" />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          
           <Header title="Additional Risk Details" />
           <div className="grid grid-cols-2 gap-8">
             {wrapInput("TD SIC Code", "riskAssessment.details.tdSic")}
