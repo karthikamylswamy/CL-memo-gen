@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { CreditMemoData, SectionKey, SourceFile, PublicRating } from '../types';
 
@@ -8,7 +9,6 @@ interface SectionRendererProps {
   onChange: (updates: Partial<CreditMemoData>) => void;
 }
 
-// Fixed: Add React.FC type to support 'key' prop in map iterators
 const MarkdownTable: React.FC<{ content: string }> = ({ content }) => {
   const lines = content.trim().split('\n');
   const tableLines = lines.filter(l => l.includes('|'));
@@ -53,7 +53,6 @@ const MarkdownTable: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
-// Fixed: Add React.FC type for consistency
 const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text, files = [] }) => {
   if (!text) return null;
 
@@ -120,7 +119,6 @@ const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text
 
 const getNested = (obj: any, path: string) => path.split('.').reduce((o, i) => (o && typeof o === 'object' ? o[i] : undefined), obj) ?? '';
 
-// Fixed: Add React.FC type for consistency
 const SourceBadge: React.FC<{ filename?: string }> = ({ filename }) => {
   if (!filename) return null;
   return (
@@ -138,7 +136,6 @@ const SourceBadge: React.FC<{ filename?: string }> = ({ filename }) => {
   );
 };
 
-// Fixed: Add React.FC type for consistency
 const Input: React.FC<{ label: string, value: any, onChange: (val: any) => void, source?: string, type?: string, placeholder?: string }> = ({ label, value, onChange, source, type = "text", placeholder = "" }) => (
   <div className="space-y-1.5">
     <div className="flex justify-between items-center">
@@ -159,7 +156,6 @@ const Input: React.FC<{ label: string, value: any, onChange: (val: any) => void,
   </div>
 );
 
-// Fixed: Add React.FC type for consistency
 const TextArea: React.FC<{ label: string, value: string, onChange: (val: string) => void, source?: string, rows?: number, className?: string }> = ({ label, value, onChange, source, rows = 4, className = "" }) => (
   <div className={`space-y-1.5 ${className}`}>
     <div className="flex justify-between items-center">
@@ -181,7 +177,6 @@ const TextArea: React.FC<{ label: string, value: string, onChange: (val: string)
 
 const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files = [], onChange }) => {
   const [selectedFile, setSelectedFile] = useState<SourceFile | null>(null);
-  const [openaiKeyInput, setOpenaiKeyInput] = useState(localStorage.getItem('MAPLE_OPENAI_API_KEY') || '');
 
   const setNested = (path: string, val: any) => {
     const keys = path.split('.');
@@ -226,56 +221,11 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
   const PreviewHeader = ({ title }: { title: string }) => <h2 className="text-xl font-black bg-slate-900 text-white px-6 py-3 uppercase tracking-widest mb-4 mt-8 first:mt-0">{title}</h2>;
   const Header = ({ title }: { title: string }) => <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] border-b border-slate-100 pb-3 mt-4 mb-4 col-span-full">{title}</h3>;
 
-  if (section === 'settings') {
-    return (
-      <div className="space-y-10 animate-in fade-in duration-700">
-        <div className="p-8 bg-slate-900 rounded-[2rem] text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-tdgreen/10 blur-[100px] rounded-full -mr-32 -mt-32"></div>
-          <div className="flex items-center gap-4 mb-10 relative z-10">
-            <div className="w-14 h-14 bg-tdgreen rounded-2xl flex items-center justify-center text-3xl">⚙️</div>
-            <div>
-              <h3 className="text-2xl font-black tracking-tight">System Environment</h3>
-              <p className="text-slate-400 text-sm">Monitor intelligence endpoints.</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
-            <div className="lg:col-span-2 space-y-4">
-              {[ { key: 'API_KEY', label: 'Gemini API Key (Env Only)', p: 'google' }, { key: 'OPENAI_API_KEY', label: 'OpenAI API Key', p: 'openai' } ].map(env => (
-                <div key={env.key} className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${env.p === 'google' ? 'bg-tdgreen/20 text-tdgreen' : 'bg-blue-500/20 text-blue-400'}`}>{env.p[0].toUpperCase()}</div>
-                    <div><p className="text-xs font-black text-slate-200">{env.label}</p><code className="text-[9px] text-slate-500">{env.key}</code></div>
-                  </div>
-                  <div className={`w-2 h-2 rounded-full ${(env.key === 'API_KEY' ? process.env.API_KEY : (getNested(process, `env.${env.key}`) || localStorage.getItem('MAPLE_OPENAI_API_KEY'))) ? 'bg-tdgreen animate-pulse' : 'bg-rose-500'}`}></div>
-                </div>
-              ))}
-            </div>
-            <div className="bg-slate-800/60 border border-slate-700 rounded-3xl p-6">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4">OpenAI Key Override</h4>
-              <p className="text-[10px] text-slate-400 mb-4 leading-relaxed italic">Set your key here to override the environment. It will be stored in your browser's local storage.</p>
-              <input 
-                type="password" 
-                placeholder="sk-..." 
-                value={openaiKeyInput} 
-                onChange={e => setOpenaiKeyInput(e.target.value)} 
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-300 mb-4 focus:ring-2 focus:ring-blue-500 outline-none" 
-              />
-              <button 
-                onClick={() => { 
-                  localStorage.setItem('MAPLE_OPENAI_API_KEY', openaiKeyInput); 
-                  alert("Key saved. Application will reload to apply changes.");
-                  window.location.reload(); 
-                }} 
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-lg shadow-blue-600/20"
-              >
-                Save & Reload
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleRatingChange = (index: number, field: keyof PublicRating, value: string) => {
+    const updatedRatings = [...data.riskAssessment.publicRatings];
+    updatedRatings[index] = { ...updatedRatings[index], [field]: value };
+    setNested('riskAssessment.publicRatings', updatedRatings);
+  };
 
   if (section === 'source_documents') {
     return (
@@ -324,7 +274,57 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             <PreviewRow label="Fee" value={getNested(data, 'facilityDetails.rates.fee')} />
           </div>
         </section>
-        <section><PreviewHeader title="4. Analysis" /><PreviewTextArea label="Company Overview" value={getNested(data, 'analysis.overview.companyDesc')} /></section>
+        <section>
+          <PreviewHeader title="4. Legal & Covenants" />
+          <div className="px-2 space-y-4">
+            <PreviewRow label="Agreement Type" value={getNested(data, 'documentation.agreementType')} />
+            <PreviewRow label="Jurisdiction" value={getNested(data, 'documentation.jurisdiction')} />
+            <PreviewTextArea label="Financial Covenants" value={getNested(data, 'documentation.financialCovenants')} />
+            <PreviewTextArea label="Negative Covenants" value={getNested(data, 'documentation.negativeCovenants')} />
+            <PreviewTextArea label="Positive Covenants" value={getNested(data, 'documentation.positiveCovenants')} />
+            <PreviewTextArea label="Reporting Requirements" value={getNested(data, 'documentation.reportingReqs')} />
+            <PreviewTextArea label="Funding Conditions" value={getNested(data, 'documentation.fundingConditions')} />
+          </div>
+        </section>
+        <section>
+          <PreviewHeader title="5. Risk & Ratings" />
+          <div className="px-2 space-y-8">
+            <Header title="Borrower Rating" />
+            <div className="grid grid-cols-2 gap-x-12">
+               <PreviewRow label="Proposed BRR" value={getNested(data, 'riskAssessment.borrowerRating.proposedBrr')} />
+               <PreviewRow label="Current BRR" value={getNested(data, 'riskAssessment.borrowerRating.currentBrr')} />
+               <PreviewRow label="Risk Analyst" value={getNested(data, 'riskAssessment.borrowerRating.riskAnalyst')} />
+               <PreviewRow label="New RA / Policy" value={getNested(data, 'riskAssessment.borrowerRating.newRaPolicy')} />
+               <PreviewRow label="RA / Policy Model" value={getNested(data, 'riskAssessment.borrowerRating.raPolicyModel')} />
+            </div>
+            <Header title="Agency Ratings" />
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+               <table className="w-full text-left border-collapse text-xs">
+                 <thead className="bg-slate-50">
+                    <tr>
+                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Agency</th>
+                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Issuer Rating</th>
+                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Senior Unsecured</th>
+                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Outlook</th>
+                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Last Updated</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                    {data.riskAssessment.publicRatings.map((rating, i) => (
+                      <tr key={i} className="border-b border-slate-100 last:border-0 font-bold">
+                        <td className="p-3 text-slate-900">{rating.agency}</td>
+                        <td className="p-3 text-slate-700">{rating.issuerRating || "N/A"}</td>
+                        <td className="p-3 text-slate-700">{rating.seniorUnsecured || "N/A"}</td>
+                        <td className="p-3 text-slate-700">{rating.outlook || "N/A"}</td>
+                        <td className="p-3 text-slate-400 italic">{rating.updatedAt || "N/A"}</td>
+                      </tr>
+                    ))}
+                 </tbody>
+               </table>
+            </div>
+          </div>
+        </section>
+        <section><PreviewHeader title="6. Analysis" /><PreviewTextArea label="Company Overview" value={getNested(data, 'analysis.overview.companyDesc')} /></section>
       </div>
     );
   }
@@ -396,15 +396,83 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
       );
     case 'risk_ratings':
       return (
-        <div className="grid grid-cols-2 gap-8">
-          {wrapInput("Proposed BRR", "riskAssessment.borrowerRating.proposedBrr")}
-          {wrapInput("Current BRR", "riskAssessment.borrowerRating.currentBrr")}
-          {wrapInput("Risk Analyst", "riskAssessment.borrowerRating.riskAnalyst")}
-          <Header title="Risk Profile" />
-          {wrapInput("Industry Risk", "riskAssessment.details.industryRisk")}
-          {wrapInput("Business Risk", "riskAssessment.details.businessRisk")}
-          {wrapInput("Financial Risk", "riskAssessment.details.financialRisk")}
-          {wrapInput("Security", "riskAssessment.details.security")}
+        <div className="space-y-12">
+          <Header title="Borrower Rating" />
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+            {wrapInput("TD BRR Proposed", "riskAssessment.borrowerRating.proposedBrr")}
+            {wrapInput("TD BRR Current", "riskAssessment.borrowerRating.currentBrr")}
+            {wrapInput("Risk Analyst", "riskAssessment.borrowerRating.riskAnalyst")}
+            {wrapInput("New RA / Policy", "riskAssessment.borrowerRating.newRaPolicy")}
+            {wrapInput("RA / Policy Model", "riskAssessment.borrowerRating.raPolicyModel")}
+          </div>
+
+          <Header title="Agency Rating" />
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Agency</th>
+                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Issuer Rating</th>
+                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Senior Unsecured Notes</th>
+                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Outlook</th>
+                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Last Updated Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.riskAssessment.publicRatings.map((rating, i) => (
+                  <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-all">
+                    <td className="p-4 font-black text-slate-800 text-sm">{rating.agency}</td>
+                    <td className="p-2">
+                      <input 
+                        type="text" 
+                        value={rating.issuerRating || ''} 
+                        onChange={(e) => handleRatingChange(i, 'issuerRating', e.target.value)}
+                        placeholder="Rating"
+                        className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input 
+                        type="text" 
+                        value={rating.seniorUnsecured || ''} 
+                        onChange={(e) => handleRatingChange(i, 'seniorUnsecured', e.target.value)}
+                        placeholder="Notes"
+                        className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input 
+                        type="text" 
+                        value={rating.outlook || ''} 
+                        onChange={(e) => handleRatingChange(i, 'outlook', e.target.value)}
+                        placeholder="Outlook"
+                        className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input 
+                        type="text" 
+                        value={rating.updatedAt || ''} 
+                        onChange={(e) => handleRatingChange(i, 'updatedAt', e.target.value)}
+                        placeholder="Date"
+                        className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-500"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          <Header title="Additional Risk Details" />
+          <div className="grid grid-cols-2 gap-8">
+            {wrapInput("TD SIC Code", "riskAssessment.details.tdSic")}
+            {wrapInput("Industry Risk", "riskAssessment.details.industryRisk")}
+            {wrapInput("Business Risk", "riskAssessment.details.businessRisk")}
+            {wrapInput("Financial Risk", "riskAssessment.details.financialRisk")}
+            {wrapInput("Security", "riskAssessment.details.security")}
+            {wrapInput("LTV %", "riskAssessment.details.ltv", "number")}
+          </div>
         </div>
       );
     case 'facility_info':
@@ -434,6 +502,9 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </div>
           {wrapTextArea("Financial Covenants", "documentation.financialCovenants")}
           {wrapTextArea("Negative Covenants", "documentation.negativeCovenants")}
+          {wrapTextArea("Positive Covenants", "documentation.positiveCovenants")}
+          {wrapTextArea("Reporting Requirements", "documentation.reportingReqs")}
+          {wrapTextArea("Funding Conditions", "documentation.fundingConditions")}
         </div>
       );
     case 'analysis_narrative':

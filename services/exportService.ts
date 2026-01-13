@@ -39,6 +39,7 @@ export const exportToWord = (data: CreditMemoData) => {
       .field { margin-bottom: 4pt; font-size: 10pt; }
       .label { font-weight: bold; width: 150pt; display: inline-block; color: #64748b; }
       .value { font-weight: bold; }
+      .narrative { margin-top: 10pt; font-size: 10pt; background: #fff; padding: 5pt; }
     </style>
     </head><body>`;
 
@@ -57,13 +58,23 @@ export const exportToWord = (data: CreditMemoData) => {
     <h2>2. Borrower Profile</h2>
     <div class="field"><span class="label">Legal Name:</span> <span class="value">${getVal(data.primaryBorrower?.borrowerName)}</span></div>
     <div class="field"><span class="label">Group:</span> <span class="value">${getVal(data.primaryBorrower?.group)}</span></div>
+    <div class="field"><span class="label">Originating Office:</span> <span class="value">${getVal(data.primaryBorrower?.originatingOffice)}</span></div>
 
     <h2>3. Credit Details</h2>
     <div class="field"><span class="label">Amount Requested:</span> <span class="value">${data.creditPosition?.creditRequested?.toLocaleString() || "0"}</span></div>
     <div class="field"><span class="label">Margin:</span> <span class="value">${getVal(data.facilityDetails?.rates?.margin)}</span></div>
     <div class="field"><span class="label">Tenor:</span> <span class="value">${getVal(data.facilityDetails?.terms?.tenor)}</span></div>
 
-    <h2>4. Analysis</h2>
+    <h2>4. Legal & Covenants</h2>
+    <div class="field"><span class="label">Agreement Type:</span> <span class="value">${getVal(data.documentation?.agreementType)}</span></div>
+    <div class="field"><span class="label">Jurisdiction:</span> <span class="value">${getVal(data.documentation?.jurisdiction)}</span></div>
+    <div class="narrative"><strong>Financial Covenants:</strong><br/>${data.documentation?.financialCovenants || "N/A"}</div>
+    <div class="narrative"><strong>Negative Covenants:</strong><br/>${data.documentation?.negativeCovenants || "N/A"}</div>
+    <div class="narrative"><strong>Positive Covenants:</strong><br/>${data.documentation?.positiveCovenants || "N/A"}</div>
+    <div class="narrative"><strong>Reporting Requirements:</strong><br/>${data.documentation?.reportingReqs || "N/A"}</div>
+    <div class="narrative"><strong>Funding Conditions:</strong><br/>${data.documentation?.fundingConditions || "N/A"}</div>
+
+    <h2>5. Analysis</h2>
     <div style="font-size:10pt;">${markdownTableToHtml(data.analysis?.overview?.companyDesc || "")}</div>
   `;
 

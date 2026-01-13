@@ -43,8 +43,7 @@ export const SECTIONS: Section[] = [
   { id: 'analysis_narrative', label: 'Analysis & Narrative', icon: '🖋️', category: 'Analysis' },
   { id: 'compliance_signoff', label: 'Sign-off & Compliance', icon: '✅', category: 'Closing' },
   { id: 'source_documents', label: 'Source Documents', icon: '📂', category: 'Review' },
-  { id: 'document_preview', label: 'Final Document Preview', icon: '👀', category: 'Review' },
-  { id: 'settings', label: 'System Settings', icon: '⚙️', category: 'System' },
+  { id: 'document_preview', label: 'Final Document Preview', icon: '👀', category: 'Review' }
 ];
 
 export const INITIAL_DATA: CreditMemoData = {

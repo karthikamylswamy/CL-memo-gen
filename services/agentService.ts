@@ -3,17 +3,6 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { CreditMemoData, AiModelId } from "../types";
 import { AVAILABLE_MODELS } from "../constants";
 
-/**
- * CONFIGURATION - Developer Exposure
- * Set your API keys in the environment or override them here for local development.
- */
-const CONFIG = {
-  // Exclusively using process.env.API_KEY for Gemini as per instructions
-  GEMINI_API_KEY: process.env.API_KEY,
-  // OpenAI key can be provided via environment or localStorage override
-  OPENAI_API_KEY: (process as any).env.OPENAI_API_KEY || localStorage.getItem('MAPLE_OPENAI_API_KEY')
-};
-
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000;
 
@@ -31,10 +20,10 @@ export const getOpenAiKey = (): string | null => {
 
 // Utility to call Gemini via SDK
 async function callGemini(modelId: string, parts: any[], config?: any) {
-  if (!CONFIG.GEMINI_API_KEY) {
+  if (!process.env.API_KEY) {
     throw new Error("Gemini API Key is missing (process.env.API_KEY)");
   }
-  const ai = new GoogleGenAI({ apiKey: CONFIG.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: modelId,
     contents: [{ parts }],
@@ -48,7 +37,7 @@ async function callOpenAI(modelId: string, messages: any[], responseFormat?: any
   const apiKey = getOpenAiKey();
   
   if (!apiKey) {
-    throw new Error("OpenAI API Key is missing. Please configure it in System Settings.");
+    throw new Error("OpenAI API Key is missing. Please configure it in System Settings (LocalStorage).");
   }
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -120,7 +109,10 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
       TASK:
       Extract as many fields as possible from the documents into the provided JSON structure. 
       Focus on Borrower info, purpose, detailed financial figures (Present Position, Credit Requested), 
-      Risk Ratings, Facility Terms (Margins, Tenors), and Legal Covenants.
+      Risk Ratings (Proposed BRR, Current BRR, Analyst, Policy details), 
+      Public Ratings from agencies like Moody's, S&P, Fitch,
+      Facility Terms (Margins, Tenors), and Legal Covenants (Positive, Negative, Financial).
+      Also extract Reporting Requirements and Funding Conditions if explicitly mentioned.
       
       For every value found, identify the 'sourceFile' it was extracted from.
       
@@ -196,7 +188,22 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
                       properties: {
                         proposedBrr: { type: Type.STRING },
                         currentBrr: { type: Type.STRING },
-                        riskAnalyst: { type: Type.STRING }
+                        riskAnalyst: { type: Type.STRING },
+                        newRaPolicy: { type: Type.STRING },
+                        raPolicyModel: { type: Type.STRING }
+                      }
+                    },
+                    publicRatings: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          agency: { type: Type.STRING },
+                          issuerRating: { type: Type.STRING },
+                          seniorUnsecured: { type: Type.STRING },
+                          outlook: { type: Type.STRING },
+                          updatedAt: { type: Type.STRING }
+                        }
                       }
                     },
                     details: {
@@ -239,7 +246,9 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
                     jurisdiction: { type: Type.STRING },
                     financialCovenants: { type: Type.STRING },
                     negativeCovenants: { type: Type.STRING },
-                    positiveCovenants: { type: Type.STRING }
+                    positiveCovenants: { type: Type.STRING },
+                    reportingReqs: { type: Type.STRING },
+                    fundingConditions: { type: Type.STRING }
                   }
                 }
               },

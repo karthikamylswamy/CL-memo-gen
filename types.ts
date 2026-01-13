@@ -189,8 +189,7 @@ export type SectionKey =
   | 'analysis_narrative'
   | 'compliance_signoff'
   | 'source_documents'
-  | 'document_preview'
-  | 'settings';
+  | 'document_preview';
 
 export interface Section {
   id: SectionKey;
