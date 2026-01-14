@@ -7,7 +7,7 @@ import { CreditMemoData, AiProvider, SourceFile, FieldSource } from "../types";
  * These variables define the specific LLM models used for each provider.
  */
 const GOOGLE_MODEL_ID = 'gemini-3-pro-preview'; 
-const OPENAI_MODEL_ID = 'gpt-5.2'; // This serves as the deployment name for Azure or the model name for OpenAI
+const OPENAI_MODEL_ID = 'gpt-4o'; // This serves as the deployment name for Azure or the model name for OpenAI
 
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000;
@@ -35,6 +35,10 @@ export const getAzureOpenAiEndpoint = (): string | null => {
 
 export const getAzureOpenAiVersion = (): string => {
   return (process as any).env.AZURE_OPENAI_API_VERSION || '2024-05-01-preview';
+};
+
+export const getAzureToken = (): string | null => {
+  return (process as any).env.AZURE_OPENAI_TOKEN || null;
 };
 
 export const getStandardOpenAiKey = (): string | null => {
@@ -91,28 +95,36 @@ async function generateAIResponse(params: {
 
   } else {
     // OpenAI Provider Selection
-    const standardKey = getStandardOpenAiKey();
+    const azureToken = getAzureToken();
     const azureEndpoint = getAzureOpenAiEndpoint();
+    const standardKey = getStandardOpenAiKey();
     const azureKey = getAzureOpenAiKey();
     
     let url: string;
     let headers: Record<string, string> = { "Content-Type": "application/json" };
     let body: any = { model: OPENAI_MODEL_ID, temperature: 0.1 };
 
-    // "for openAI use the endpoint instead of api key if open_API_KEY is provided"
-    // Interpretation: If standard OPENAI_API_KEY is available and no Azure endpoint is set, use standard OpenAI API.
-    if (standardKey && !azureEndpoint) {
+    /**
+     * AUTHENTICATION HIERARCHY:
+     * 1. Azure OpenAI with Bearer Token (if AZURE_OPENAI_TOKEN + endpoint provided)
+     * 2. Standard OpenAI Fallback (if OPENAI_API_KEY provided)
+     * 3. Azure OpenAI with API-Key (fallback for Azure specific infrastructure)
+     */
+    if (azureToken && azureEndpoint) {
+      const apiVersion = getAzureOpenAiVersion();
+      url = `${azureEndpoint.replace(/\/$/, '')}/openai/deployments/${OPENAI_MODEL_ID}/chat/completions?api-version=${apiVersion}`;
+      headers["Authorization"] = `Bearer ${azureToken}`;
+      delete body.model; // Azure uses deployment from URL
+    } else if (standardKey) {
       url = "https://api.openai.com/v1/chat/completions";
       headers["Authorization"] = `Bearer ${standardKey}`;
-    } else {
-      // Fallback to Azure logic
-      if (!azureEndpoint || !azureKey) {
-        throw new Error("OpenAI Configuration is missing. Please provide OPENAI_API_KEY or Azure OpenAI Endpoint/Key.");
-      }
+    } else if (azureEndpoint && azureKey) {
       const apiVersion = getAzureOpenAiVersion();
       url = `${azureEndpoint.replace(/\/$/, '')}/openai/deployments/${OPENAI_MODEL_ID}/chat/completions?api-version=${apiVersion}`;
       headers["api-key"] = azureKey;
-      delete body.model; // Azure uses deployment name in the URL
+      delete body.model;
+    } else {
+      throw new Error("OpenAI Configuration is missing. Please provide AZURE_OPENAI_TOKEN, OPENAI_API_KEY, or Azure Endpoint/Key.");
     }
 
     const messages: any[] = [];
