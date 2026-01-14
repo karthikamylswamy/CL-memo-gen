@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { CreditMemoData, SectionKey, SourceFile, AiModelId } from './types';
-import { SECTIONS, getInitialData, AVAILABLE_MODELS } from './constants';
+import { CreditMemoData, SectionKey, SourceFile, AiProvider } from './types';
+import { SECTIONS, getInitialData } from './constants';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SectionRenderer from './components/SectionRenderer';
@@ -12,7 +12,6 @@ import { processDocumentWithAgents } from './services/agentService';
 import { exportToWord } from './services/exportService';
 import * as db from './services/dbService';
 
-// Deep merge helper to prevent nested undefined properties when merging AI responses
 const deepMerge = (target: any, source: any) => {
   const output = { ...target };
   if (source && typeof source === 'object') {
@@ -36,7 +35,7 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [previewFile, setPreviewFile] = useState<SourceFile | null>(null);
-  const [selectedModelId, setSelectedModelId] = useState<AiModelId>('gemini-3-flash-preview');
+  const [selectedProvider, setSelectedProvider] = useState<AiProvider>('google');
 
   // Load data on start
   useEffect(() => {
@@ -57,7 +56,6 @@ const App: React.FC = () => {
   useEffect(() => {
     const freshInitial = getInitialData();
     // Only save if data is actually different from initial state
-    // and we aren't currently resetting
     if (JSON.stringify(data) !== JSON.stringify(freshInitial)) {
       db.saveMemo(data).then(() => setLastSaved(new Date()));
     }
@@ -93,7 +91,7 @@ const App: React.FC = () => {
     setUploadedFiles(prev => [...prev, ...loadedSourceFiles]);
 
     try {
-      const { data: extractedData, fieldSources } = await processDocumentWithAgents(files, selectedModelId);
+      const { data: extractedData, fieldSources } = await processDocumentWithAgents(files, selectedProvider);
       
       const newData = deepMerge(data, extractedData);
       newData.fieldSources = {
@@ -115,12 +113,14 @@ const App: React.FC = () => {
     if (confirm("Are you sure you want to clear this workspace? All document data and extracted fields will be permanently removed.")) {
       try {
         await db.clearAllData();
-        // Use a function to return a fresh copy to prevent mutations leaking
+        // Force state reset to initial values
         setData(getInitialData());
         setUploadedFiles([]);
         setExtractedCount(0);
         setLastSaved(null);
         setActiveSection('borrower_details');
+        // Small delay to ensure clear UI transition
+        console.log("Workspace reset successfully.");
       } catch (err) {
         console.error("Failed to clear data:", err);
         alert("Reset failed. Please try refreshing the page.");
@@ -142,8 +142,8 @@ const App: React.FC = () => {
           isProcessing={isProcessing} 
           extractedCount={extractedCount}
           lastSaved={lastSaved}
-          selectedModelId={selectedModelId}
-          onModelChange={setSelectedModelId}
+          selectedProvider={selectedProvider}
+          onProviderChange={setSelectedProvider}
         />
         
         <div className="bg-white border-b border-slate-200 px-8 py-4 z-10 shadow-sm flex items-center justify-between">
@@ -159,7 +159,7 @@ const App: React.FC = () => {
             }`}
           >
             <div className={`w-2 h-2 rounded-full ${isChatOpen ? 'bg-tdgreen' : 'bg-slate-300'} animate-pulse`}></div>
-            {isChatOpen ? 'Hide Assistant' : 'AI Assistant'}
+            {isChatOpen ? 'Assistant' : 'Ask AI Agent'}
           </button>
         </div>
 
@@ -204,15 +204,9 @@ const App: React.FC = () => {
                   className="flex items-center gap-3 px-8 py-3 bg-tdgreen text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-tdgreen/20 hover:scale-105 active:scale-95 transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                  Download Word Memo
+                  Export Word Memo
                 </button>
               )}
-              <button 
-                className="px-10 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-lg shadow-slate-200/20 font-bold text-sm"
-                onClick={() => alert("Workspace state saved to persistent storage.")}
-              >
-                Sync Status
-              </button>
             </div>
           </div>
         </main>
@@ -222,7 +216,7 @@ const App: React.FC = () => {
         data={data}
         files={uploadedFiles}
         isOpen={isChatOpen}
-        selectedModelId={selectedModelId}
+        selectedProvider={selectedProvider}
         onToggle={() => setIsChatOpen(false)}
         onPreviewFile={setPreviewFile}
       />

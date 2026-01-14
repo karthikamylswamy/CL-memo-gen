@@ -1,28 +1,24 @@
 
 import React from 'react';
-import { AiModelId } from '../types';
-import { AVAILABLE_MODELS } from '../constants';
+import { AiProvider } from '../types';
 import { getAzureOpenAiKey } from '../services/agentService';
 
 interface HeaderProps {
   isProcessing: boolean;
   extractedCount: number;
   lastSaved: Date | null;
-  selectedModelId: AiModelId;
-  onModelChange: (modelId: AiModelId) => void;
+  selectedProvider: AiProvider;
+  onProviderChange: (provider: AiProvider) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
   isProcessing, 
   extractedCount, 
   lastSaved,
-  selectedModelId,
-  onModelChange
+  selectedProvider,
+  onProviderChange
 }) => {
-  const currentModel = AVAILABLE_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_MODELS[0];
-  
-  // Fix: replaced getOpenAiKey with getAzureOpenAiKey to align with services exports.
-  const isKeyMissing = currentModel.provider === 'openai' 
+  const isKeyMissing = selectedProvider === 'openai' 
     ? !getAzureOpenAiKey() 
     : !process.env.API_KEY;
 
@@ -36,29 +32,25 @@ const Header: React.FC<HeaderProps> = ({
       </div>
       
       <div className="flex items-center gap-6">
-        {/* Model Switcher */}
         <div className={`flex items-center gap-3 px-3 py-1.5 border rounded-xl transition-all ${isKeyMissing ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'}`}>
           <div className="flex flex-col">
             <span className={`text-[8px] font-black uppercase tracking-widest leading-none mb-1 ${isKeyMissing ? 'text-rose-500' : 'text-slate-400'}`}>
-              {isKeyMissing ? '⚠️ KEY MISSING' : 'Active Intelligence'}
+              {isKeyMissing ? '⚠️ KEY MISSING' : 'Intelligence Engine'}
             </span>
             <select 
-              value={selectedModelId}
-              onChange={(e) => onModelChange(e.target.value as AiModelId)}
+              value={selectedProvider}
+              onChange={(e) => onProviderChange(e.target.value as AiProvider)}
               className="bg-transparent text-[10px] font-black text-slate-700 uppercase tracking-widest outline-none cursor-pointer pr-2"
             >
-              {AVAILABLE_MODELS.map(model => (
-                <option key={model.id} value={model.id}>
-                  {model.label} ({model.provider.toUpperCase()})
-                </option>
-              ))}
+              <option value="google">Gemini (Google)</option>
+              <option value="openai">GPT-4o (OpenAI)</option>
             </select>
           </div>
           <div className={`w-px h-6 mx-1 ${isKeyMissing ? 'bg-rose-200' : 'bg-slate-200'}`}></div>
           <div className="flex items-center gap-1.5">
-             <span className={`w-2 h-2 rounded-full animate-pulse ${isKeyMissing ? 'bg-rose-500' : (currentModel.provider === 'google' ? 'bg-tdgreen' : 'bg-blue-500')}`}></span>
-             <span className={`text-[9px] font-black uppercase tracking-widest ${isKeyMissing ? 'text-rose-500' : (currentModel.provider === 'google' ? 'text-tdgreen' : 'text-blue-500')}`}>
-               {currentModel.badge}
+             <span className={`w-2 h-2 rounded-full animate-pulse ${isKeyMissing ? 'bg-rose-500' : (selectedProvider === 'google' ? 'bg-tdgreen' : 'bg-blue-500')}`}></span>
+             <span className={`text-[9px] font-black uppercase tracking-widest ${isKeyMissing ? 'text-rose-500' : (selectedProvider === 'google' ? 'text-tdgreen' : 'text-blue-500')}`}>
+               {selectedProvider === 'google' ? 'PRO' : 'ADVANCED'}
              </span>
           </div>
         </div>
@@ -91,11 +83,11 @@ const Header: React.FC<HeaderProps> = ({
             <p className="text-sm font-black text-slate-700">Senior Analyst</p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CIB-Credit</p>
           </div>
-          <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm ring-1 ring-slate-100">
+          <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm ring-1 ring-slate-100 overflow-hidden">
             <img 
               src="https://picsum.photos/seed/analyst/40/40" 
               alt="Profile" 
-              className="w-full h-full rounded-full object-cover"
+              className="w-full h-full object-cover"
             />
           </div>
         </div>

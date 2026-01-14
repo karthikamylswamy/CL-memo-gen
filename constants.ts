@@ -1,43 +1,5 @@
 
-import { Section, CreditMemoData, AiModel } from './types';
-
-export const AVAILABLE_MODELS: AiModel[] = [
-  { 
-    id: 'gemini-3-flash-preview', 
-    provider: 'google',
-    label: 'Gemini Flash 3', 
-    description: 'Fastest for extraction & chat.',
-    badge: 'Flash'
-  },
-  { 
-    id: 'gemini-3-pro-preview', 
-    provider: 'google',
-    label: 'Gemini Pro 3', 
-    description: 'Advanced reasoning for complex synthesis.',
-    badge: 'Pro'
-  },
-  { 
-    id: 'gpt-5-preview', 
-    provider: 'openai',
-    label: 'GPT-5 (Azure)', 
-    description: 'Next-gen reasoning via Azure OpenAI.',
-    badge: 'Azure'
-  },
-  { 
-    id: 'gpt-4o', 
-    provider: 'openai',
-    label: 'GPT-4o (Azure)', 
-    description: 'High intelligence and multimodal support via Azure.',
-    badge: 'Azure'
-  },
-  { 
-    id: 'gpt-4o-mini', 
-    provider: 'openai',
-    label: 'GPT-4o Mini (Azure)', 
-    description: 'Fast and efficient via Azure.',
-    badge: 'Azure'
-  }
-];
+import { Section, CreditMemoData } from './types';
 
 export const SECTIONS: Section[] = [
   { id: 'borrower_details', label: 'Primary Borrower', icon: '👤', category: 'General' },
