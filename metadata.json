@@ -1,7 +1,5 @@
 {
   "name": "Maple | Credit Memo Builder",
   "description": "A comprehensive multi-agent AI application for structured credit analysis, data extraction from deal documents, and automated credit memo generation for corporate lending.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "requestFramePermissions": []
 }
