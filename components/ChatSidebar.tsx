@@ -1,9 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { ChatMessage, CreditMemoData, SourceFile, AiModelId } from '../types';
 import { AVAILABLE_MODELS } from '../constants';
-import { getOpenAiKey } from '../services/agentService';
+import { chatWithAiAgent } from '../services/agentService';
 
 interface ChatSidebarProps {
   data: CreditMemoData;
@@ -35,8 +34,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  // Gemini specific refs
-  const chatRef = useRef<Chat | null>(null);
   const currentModel = AVAILABLE_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_MODELS[0];
 
   useEffect(() => {
@@ -44,30 +41,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, activeTab]);
-
-  // Re-initialize chat if the provider or model changes
-  useEffect(() => {
-    chatRef.current = null; 
-  }, [selectedModelId]);
-
-  const initGeminiChat = async () => {
-    if (!process.env.API_KEY) throw new Error("Google API Key missing.");
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const systemInstruction = `
-      Senior Syndicate Credit Analyst Persona.
-      Context: ${JSON.stringify(data)}
-      Documents: ${files.map(f => f.name).join(', ')}
-      Goal: Assist in memo building, verify data, and synthesize risks.
-    `;
-
-    chatRef.current = ai.chats.create({
-      model: selectedModelId,
-      config: {
-        systemInstruction,
-        temperature: 0.1,
-      }
-    });
-  };
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
@@ -84,73 +57,28 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
     setIsTyping(true);
 
     try {
-      if (currentModel.provider === 'google') {
-        if (!chatRef.current) await initGeminiChat();
-        
-        const fileParts = files.slice(0, 3).map(f => ({
-          inlineData: {
-            data: f.dataUrl.split(',')[1],
-            mimeType: f.type
-          }
-        }));
+      const history = messages.map(m => ({ role: m.role, text: m.text }));
+      
+      const responseText = await chatWithAiAgent({
+        modelId: selectedModelId,
+        message: input,
+        history,
+        memoContext: data,
+        files
+      });
 
-        const result = await chatRef.current!.sendMessageStream({
-          message: {
-            parts: [...fileParts, { text: input }]
-          } as any
-        });
-
-        const modelId = (Date.now() + 1).toString();
-        setMessages(prev => [...prev, { id: modelId, role: 'model', text: '', timestamp: new Date() }]);
-
-        let fullText = '';
-        for await (const chunk of result) {
-          const chunkText = (chunk as GenerateContentResponse).text || '';
-          fullText += chunkText;
-          setMessages(prev => prev.map(m => m.id === modelId ? { ...m, text: fullText } : m));
-        }
-      } else {
-        // OpenAI Chat
-        const apiKey = getOpenAiKey();
-        if (!apiKey) throw new Error("Missing OpenAI API Key. Please set it in System Settings.");
-
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: selectedModelId,
-            messages: [
-              { role: "system", content: `Credit Analyst Persona. Context: ${JSON.stringify(data)}` },
-              { role: "user", content: input }
-            ],
-            temperature: 0.1
-          })
-        });
-
-        if (!response.ok) {
-           const err = await response.json();
-           throw new Error(err.error?.message || "OpenAI communication failed.");
-        }
-
-        const result = await response.json();
-        const modelText = result.choices[0].message.content;
-        
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          role: 'model',
-          text: modelText,
-          timestamp: new Date()
-        }]);
-      }
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'model',
+        text: responseText,
+        timestamp: new Date()
+      }]);
     } catch (error: any) {
       console.error("Chat error:", error);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
-        text: `Error: ${error.message || "The provisioned model encountered an error. Please verify your provider API keys."}`,
+        text: `Error: ${error.message || "The provisioned model encountered an error. Please verify your provider API keys in System Settings."}`,
         timestamp: new Date()
       }]);
     } finally {
@@ -203,7 +131,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-white" ref={scrollRef}>
         {activeTab === 'chat' ? (
           <div className="p-6 space-y-6">
             {messages.map((m) => (
