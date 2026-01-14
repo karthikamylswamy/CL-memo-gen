@@ -28,7 +28,8 @@ export type AiModelId =
   | 'gemini-3-flash-preview' 
   | 'gemini-3-pro-preview' 
   | 'gpt-4o' 
-  | 'gpt-4o-mini';
+  | 'gpt-4o-mini'
+  | 'gpt-5-preview';
 
 export interface AiModel {
   id: AiModelId;
@@ -189,8 +190,7 @@ export type SectionKey =
   | 'analysis_narrative'
   | 'compliance_signoff'
   | 'source_documents'
-  | 'document_preview'
-  | 'settings';
+  | 'document_preview';
 
 export interface Section {
   id: SectionKey;

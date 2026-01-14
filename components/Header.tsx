@@ -2,7 +2,7 @@
 import React from 'react';
 import { AiModelId } from '../types';
 import { AVAILABLE_MODELS } from '../constants';
-import { getOpenAiKey } from '../services/agentService';
+import { getAzureOpenAiKey } from '../services/agentService';
 
 interface HeaderProps {
   isProcessing: boolean;
@@ -21,8 +21,9 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const currentModel = AVAILABLE_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_MODELS[0];
   
+  // Fix: replaced getOpenAiKey with getAzureOpenAiKey to align with services exports.
   const isKeyMissing = currentModel.provider === 'openai' 
-    ? !getOpenAiKey() 
+    ? !getAzureOpenAiKey() 
     : !process.env.API_KEY;
 
   return (

@@ -6,24 +6,43 @@ import { AVAILABLE_MODELS } from "../constants";
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000;
 
+// List of MIME types officially supported for inlineData by the models
+const SUPPORTED_GEMINI_MIME_TYPES = [
+  'image/png', 
+  'image/jpeg', 
+  'image/webp', 
+  'image/heic', 
+  'image/heif', 
+  'application/pdf'
+];
+
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
- * Robust key resolution for OpenAI.
+ * Robust key resolution for Azure OpenAI.
  */
-export const getOpenAiKey = (): string | null => {
-  return localStorage.getItem('MAPLE_OPENAI_API_KEY') || (process as any).env.OPENAI_API_KEY || null;
+export const getAzureOpenAiKey = (): string | null => {
+  return (process as any).env.AZURE_OPENAI_API_KEY || (process as any).env.API_KEY || null;
+};
+
+export const getAzureOpenAiEndpoint = (): string | null => {
+  return (process as any).env.AZURE_OPENAI_ENDPOINT || null;
+};
+
+export const getAzureOpenAiVersion = (): string => {
+  return (process as any).env.AZURE_OPENAI_API_VERSION || '2024-05-01-preview';
 };
 
 /**
  * Unified AI Request Interface to make all functions model/provider agnostic.
+ * OpenAI provider is configured to use Azure OpenAI endpoints.
  */
 async function generateAIResponse(params: {
   modelId: AiModelId;
   prompt: string;
-  files?: { data: string; mimeType: string }[];
+  files?: { data: string; mimeType: string; name?: string }[];
   jsonSchema?: any;
   systemInstruction?: string;
   useThinking?: boolean;
@@ -36,7 +55,12 @@ async function generateAIResponse(params: {
     const parts: any[] = [];
     if (params.files) {
       params.files.forEach(f => {
-        parts.push({ inlineData: { data: f.data, mimeType: f.mimeType } });
+        // Filter out unsupported MIME types (like application/msword) before sending to Gemini
+        if (SUPPORTED_GEMINI_MIME_TYPES.includes(f.mimeType)) {
+          parts.push({ inlineData: { data: f.data, mimeType: f.mimeType } });
+        } else {
+          console.warn(`Skipping file ${f.name} from binary upload: MIME type ${f.mimeType} is not supported by Gemini inlineData.`);
+        }
       });
     }
     parts.push({ text: params.prompt });
@@ -50,7 +74,6 @@ async function generateAIResponse(params: {
       config.responseSchema = params.jsonSchema;
     }
 
-    // Apply thinking budget for Gemini 3 Pro if requested (for complex synthesis)
     if (params.useThinking && params.modelId === 'gemini-3-pro-preview') {
       config.thinkingConfig = { thinkingBudget: 32768 };
     }
@@ -67,9 +90,17 @@ async function generateAIResponse(params: {
     };
 
   } else {
-    // OpenAI Provider
-    const apiKey = getOpenAiKey();
-    if (!apiKey) throw new Error("OpenAI API Key is missing. Please configure it in System Settings.");
+    // Azure OpenAI Provider
+    const apiKey = getAzureOpenAiKey();
+    const endpoint = getAzureOpenAiEndpoint();
+    const apiVersion = getAzureOpenAiVersion();
+
+    if (!apiKey || !endpoint) {
+      throw new Error("Azure OpenAI Configuration is missing (API Key or Endpoint). Please check environment variables.");
+    }
+
+    const deploymentName = (process as any).env.AZURE_OPENAI_DEPLOYMENT_NAME || params.modelId;
+    const url = `${endpoint.replace(/\/$/, '')}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
 
     const messages: any[] = [];
     if (params.systemInstruction) {
@@ -92,7 +123,6 @@ async function generateAIResponse(params: {
     messages.push({ role: "user", content: userContent });
 
     const body: any = {
-      model: params.modelId,
       messages,
       temperature: 0.1
     };
@@ -101,18 +131,18 @@ async function generateAIResponse(params: {
       body.response_format = { type: "json_object" };
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        "api-key": apiKey
       },
       body: JSON.stringify(body)
     });
 
     if (!response.ok) {
       const err = await response.json();
-      throw new Error(err.error?.message || "OpenAI request failed");
+      throw new Error(err.error?.message || "Azure OpenAI request failed");
     }
 
     const result = await response.json();
@@ -145,7 +175,7 @@ async function callWithRetry(apiCall: () => Promise<any>, retries = MAX_RETRIES)
 }
 
 /**
- * Agnostic agent orchestration for document processing.
+ * Agnostic agent orchestration for exhaustive document processing.
  */
 export const processDocumentWithAgents = async (files: File[], modelId: AiModelId): Promise<{ data: Partial<CreditMemoData>, fieldSources: Record<string, string> }> => {
   const filePromises = files.map(file => {
@@ -163,11 +193,20 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
   
   const extractData = async () => {
     const extractionPrompt = `
-      Act as a Senior Syndicate Credit Officer. Analyze documents: ${fileDataList.map(f => f.name).join(', ')}.
-      Extract Borrower info, credit Requested, Present Position, Risk Ratings (BRR, Analyst, Policy), 
-      Public Ratings (Moody's, S&P, Fitch), Facility Terms, and all Covenants (Positive, Negative, Financial, Reporting, Funding).
-      Identify the 'sourceFile' for every extracted value.
-      Return JSON: { "extractedData": StructuredMemoData, "fieldSources": [{ "fieldPath": string, "sourceFile": string }] }
+      Act as an Elite Syndicate Credit Analyst. Perform an EXHAUSTIVE audit and extraction on all provided documents: ${fileDataList.map(f => f.name).join(', ')}.
+      
+      Your goal is to populate a complete Credit Memo with granular precision. Extract the following categories:
+      
+      1. PRIMARY BORROWER: Full legal name, headquarters office, parent group, and specific risk classifications (Leveraged, Strategic, Covenant Lite status).
+      2. CREDIT & EXPOSURE: Extract specific requested amounts, existing positions, committed limits > 1yr, and trading line sub-limits.
+      3. PURPOSE: Detailed business rationale for the loan and adjudication considerations.
+      4. RISK & RATINGS: Extract Borrower Risk Rating (BRR), current vs proposed. Scrape the full ratings table for Moody's, S&P, and Fitch (Issuer, Senior Unsecured, Outlook, and Date).
+      5. FACILITY DETAILS: Scrape pricing grids (Margins, Upfront Fees, Commitment Fees), Tenor (years/months), Maturity Dates, and specific repayment/prepayment terms.
+      6. LEGAL & COVENANTS: Extract EXHAUSTIVE text for Negative, Positive, and Financial Covenants. Scrape Reporting Requirements (e.g. 45 days for 10Q, 90 days for 10K).
+      7. ANALYSIS: Scrape the business description, recent corporate events, and sources/uses of funds if available.
+      
+      Identify the 'sourceFile' for EVERY single field extracted to maintain an audit trail.
+      Return valid JSON in the requested schema.
     `;
 
     const result = await generateAIResponse({
@@ -180,16 +219,115 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
           extractedData: { 
             type: Type.OBJECT,
             properties: {
-              primaryBorrower: { type: Type.OBJECT, properties: { borrowerName: { type: Type.STRING }, originatingOffice: { type: Type.STRING }, group: { type: Type.STRING }, accountClassification: { type: Type.STRING } } },
-              creditPosition: { type: Type.OBJECT, properties: { presentPosition: { type: Type.NUMBER }, creditRequested: { type: Type.NUMBER } } },
+              primaryBorrower: { 
+                type: Type.OBJECT, 
+                properties: { 
+                  borrowerName: { type: Type.STRING }, 
+                  originatingOffice: { type: Type.STRING }, 
+                  group: { type: Type.STRING }, 
+                  accountClassification: { type: Type.STRING },
+                  leveragedLending: { type: Type.BOOLEAN },
+                  covenantLite: { type: Type.BOOLEAN },
+                  strategicLoan: { type: Type.BOOLEAN }
+                } 
+              },
+              purpose: {
+                type: Type.OBJECT,
+                properties: {
+                  businessPurpose: { type: Type.STRING },
+                  adjudicationConsiderations: { type: Type.STRING }
+                }
+              },
+              creditPosition: { 
+                type: Type.OBJECT, 
+                properties: { 
+                  presentPosition: { type: Type.NUMBER }, 
+                  creditRequested: { type: Type.NUMBER },
+                  previousAuthorization: { type: Type.NUMBER },
+                  tradingLine: { type: Type.NUMBER },
+                  committedOverOneYear: { type: Type.NUMBER }
+                } 
+              },
               riskAssessment: {
                 type: Type.OBJECT,
                 properties: {
-                  borrowerRating: { type: Type.OBJECT, properties: { proposedBrr: { type: Type.STRING }, currentBrr: { type: Type.STRING }, riskAnalyst: { type: Type.STRING } } },
-                  publicRatings: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { agency: { type: Type.STRING }, issuerRating: { type: Type.STRING }, outlook: { type: Type.STRING } } } }
+                  borrowerRating: { 
+                    type: Type.OBJECT, 
+                    properties: { 
+                      proposedBrr: { type: Type.STRING }, 
+                      currentBrr: { type: Type.STRING }, 
+                      riskAnalyst: { type: Type.STRING },
+                      raPolicyModel: { type: Type.STRING }
+                    } 
+                  },
+                  publicRatings: { 
+                    type: Type.ARRAY, 
+                    items: { 
+                      type: Type.OBJECT, 
+                      properties: { 
+                        agency: { type: Type.STRING }, 
+                        issuerRating: { type: Type.STRING }, 
+                        seniorUnsecured: { type: Type.STRING }, 
+                        outlook: { type: Type.STRING },
+                        updatedAt: { type: Type.STRING }
+                      } 
+                    } 
+                  },
+                  details: {
+                    type: Type.OBJECT,
+                    properties: {
+                      tdSic: { type: Type.STRING },
+                      industryRisk: { type: Type.STRING },
+                      ltv: { type: Type.NUMBER },
+                      security: { type: Type.STRING }
+                    }
+                  }
                 }
               },
-              documentation: { type: Type.OBJECT, properties: { financialCovenants: { type: Type.STRING }, negativeCovenants: { type: Type.STRING }, positiveCovenants: { type: Type.STRING }, reportingReqs: { type: Type.STRING }, fundingConditions: { type: Type.STRING } } }
+              facilityDetails: {
+                type: Type.OBJECT,
+                properties: {
+                  rates: {
+                    type: Type.OBJECT,
+                    properties: {
+                      margin: { type: Type.STRING },
+                      fee: { type: Type.STRING },
+                      upfront: { type: Type.STRING }
+                    }
+                  },
+                  terms: {
+                    type: Type.OBJECT,
+                    properties: {
+                      tenor: { type: Type.STRING },
+                      maturity: { type: Type.STRING }
+                    }
+                  }
+                }
+              },
+              documentation: { 
+                type: Type.OBJECT, 
+                properties: { 
+                  agreementType: { type: Type.STRING },
+                  jurisdiction: { type: Type.STRING },
+                  financialCovenants: { type: Type.STRING }, 
+                  negativeCovenants: { type: Type.STRING }, 
+                  positiveCovenants: { type: Type.STRING }, 
+                  reportingReqs: { type: Type.STRING }, 
+                  fundingConditions: { type: Type.STRING } 
+                } 
+              },
+              analysis: {
+                type: Type.OBJECT,
+                properties: {
+                  overview: {
+                    type: Type.OBJECT,
+                    properties: {
+                      companyDesc: { type: Type.STRING },
+                      recentEvents: { type: Type.STRING }
+                    }
+                  }
+                }
+              }
             },
             required: ["primaryBorrower"]
           },
@@ -216,18 +354,21 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
 
   const synthesizeNarrative = async () => {
     const synthesisPrompt = `
-      Underwriter synthesis. Context: ${JSON.stringify(extracted)}.
-      1. Write professional detailed executive recommendation.
-      2. Use Markdown Tables for key deal terms.
-      3. Reference exhibits: ![Description](FILENAME).
-      4. Focus on risk mitigation and fundamental credit strength.
+      Perform a deep executive analysis for the Deal Team.
+      Context: ${JSON.stringify(extracted)}.
+      
+      Requirements:
+      1. Synthesize an "Executive Recommendation" that highlights credit strengths, risks, and mitigants.
+      2. Include Markdown Tables for "Key Financial Covenants" and "Tiered Pricing Grid" if found.
+      3. Use Exhibits: Reference specific sections using ![Description](FILENAME) when a chart or table from a document is critical.
+      4. Professional tone for a Management Credit Committee (MCC).
     `;
 
     const result = await generateAIResponse({
       modelId,
       prompt: synthesisPrompt,
       files: fileDataList,
-      useThinking: true // Enable advanced reasoning for synthesis
+      useThinking: true
     });
     return result.text;
   };
@@ -258,11 +399,12 @@ export const chatWithAiAgent = async (params: {
   memoContext: CreditMemoData;
   files: SourceFile[];
 }) => {
-  const systemInstruction = `Senior Credit Analyst Persona. Context: ${JSON.stringify(params.memoContext)}. Documents: ${params.files.map(f => f.name).join(', ')}.`;
+  const systemInstruction = `Senior Credit Analyst Persona. Context: ${JSON.stringify(params.memoContext)}. You have access to the deal documents: ${params.files.map(f => f.name).join(', ')}. Provide detailed, evidence-based answers for credit underwriting queries.`;
   
   const chatFiles = params.files.slice(0, 3).map(f => ({
     data: f.dataUrl.split(',')[1],
-    mimeType: f.type
+    mimeType: f.type,
+    name: f.name
   }));
 
   const result = await generateAIResponse({

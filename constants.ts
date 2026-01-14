@@ -17,18 +17,25 @@ export const AVAILABLE_MODELS: AiModel[] = [
     badge: 'Pro'
   },
   { 
+    id: 'gpt-5-preview', 
+    provider: 'openai',
+    label: 'GPT-5 (Azure)', 
+    description: 'Next-gen reasoning via Azure OpenAI.',
+    badge: 'Azure'
+  },
+  { 
     id: 'gpt-4o', 
     provider: 'openai',
-    label: 'GPT-4o', 
-    description: 'High intelligence and multimodal support.',
-    badge: 'OpenAI'
+    label: 'GPT-4o (Azure)', 
+    description: 'High intelligence and multimodal support via Azure.',
+    badge: 'Azure'
   },
   { 
     id: 'gpt-4o-mini', 
     provider: 'openai',
-    label: 'GPT-4o Mini', 
-    description: 'Fast and efficient for smaller tasks.',
-    badge: 'Mini'
+    label: 'GPT-4o Mini (Azure)', 
+    description: 'Fast and efficient via Azure.',
+    badge: 'Azure'
   }
 ];
 
@@ -43,8 +50,7 @@ export const SECTIONS: Section[] = [
   { id: 'analysis_narrative', label: 'Analysis & Narrative', icon: '🖋️', category: 'Analysis' },
   { id: 'compliance_signoff', label: 'Sign-off & Compliance', icon: '✅', category: 'Closing' },
   { id: 'source_documents', label: 'Source Documents', icon: '📂', category: 'Review' },
-  { id: 'document_preview', label: 'Final Document Preview', icon: '👀', category: 'Review' },
-  { id: 'settings', label: 'System Settings', icon: '⚙️', category: 'Admin' }
+  { id: 'document_preview', label: 'Final Document Preview', icon: '👀', category: 'Review' }
 ];
 
 export const INITIAL_DATA: CreditMemoData = {
@@ -141,6 +147,7 @@ export const INITIAL_DATA: CreditMemoData = {
   },
   compliance: {
     signOff: { name: '', title: '', date: '', approver: '' },
+    // Fix: replaced 'string' type placeholders with empty string literals to resolve 'type-used-as-value' errors.
     legal: { declarationInterest: '', directors: '', illegalTying: '' },
     additionalComments: '',
   },

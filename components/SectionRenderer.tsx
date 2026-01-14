@@ -160,7 +160,6 @@ const TextArea: React.FC<{ label: string, value: string, onChange: (val: string)
 
 const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files = [], onChange }) => {
   const [selectedFile, setSelectedFile] = useState<SourceFile | null>(null);
-  const [openaiKeyInput, setOpenaiKeyInput] = useState(localStorage.getItem('MAPLE_OPENAI_API_KEY') || '');
 
   const setNested = (path: string, val: any) => {
     const keys = path.split('.');
@@ -211,62 +210,6 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     setNested('riskAssessment.publicRatings', updatedRatings);
   };
 
-  if (section === 'settings') {
-    return (
-      <div className="space-y-10 animate-in fade-in duration-700">
-        <div className="p-8 bg-slate-900 rounded-[2rem] text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-tdgreen/10 blur-[100px] rounded-full -mr-32 -mt-32"></div>
-          <div className="flex items-center gap-4 mb-10 relative z-10">
-            <div className="w-14 h-14 bg-tdgreen rounded-2xl flex items-center justify-center text-3xl">⚙️</div>
-            <div>
-              <h3 className="text-2xl font-black tracking-tight">System Configuration</h3>
-              <p className="text-slate-400 text-sm">Manage API endpoints and overrides.</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
-            <div className="lg:col-span-2 space-y-4">
-              <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs bg-tdgreen/20 text-tdgreen">G</div>
-                  <div><p className="text-xs font-black text-slate-200">Gemini API (Primary)</p><code className="text-[9px] text-slate-500">process.env.API_KEY</code></div>
-                </div>
-                <div className={`w-2 h-2 rounded-full ${process.env.API_KEY ? 'bg-tdgreen animate-pulse' : 'bg-rose-500'}`}></div>
-              </div>
-              <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs bg-blue-500/20 text-blue-400">O</div>
-                  <div><p className="text-xs font-black text-slate-200">OpenAI API (Optional)</p><code className="text-[9px] text-slate-500">localStorage Override</code></div>
-                </div>
-                <div className={`w-2 h-2 rounded-full ${(getNested(process, `env.OPENAI_API_KEY`) || localStorage.getItem('MAPLE_OPENAI_API_KEY')) ? 'bg-blue-500 animate-pulse' : 'bg-rose-500'}`}></div>
-              </div>
-            </div>
-            <div className="bg-slate-800/60 border border-slate-700 rounded-3xl p-6">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4">Update OpenAI Key</h4>
-              <p className="text-[10px] text-slate-400 mb-4 leading-relaxed italic">Store your OpenAI key in localStorage for session persistence.</p>
-              <input 
-                type="password" 
-                placeholder="sk-..." 
-                value={openaiKeyInput} 
-                onChange={e => setOpenaiKeyInput(e.target.value)} 
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-300 mb-4 focus:ring-2 focus:ring-blue-500 outline-none" 
-              />
-              <button 
-                onClick={() => { 
-                  localStorage.setItem('MAPLE_OPENAI_API_KEY', openaiKeyInput); 
-                  alert("OpenAI Key saved successfully.");
-                  window.location.reload(); 
-                }} 
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-lg"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (section === 'source_documents') {
     return (
       <div className="h-full flex flex-col gap-8 animate-in fade-in duration-700">
@@ -295,7 +238,11 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter">Credit Memo</h1>
           <p className="text-slate-500 font-bold mt-2 text-sm uppercase">Institutional Banking • Syndicate Credit</p>
         </div>
+        
+        {/* Recommendation Section */}
         <section><PreviewHeader title="1. Recommendation" /><PreviewTextArea label="Summary" value={getNested(data, 'analysis.justification.recommendation')} /></section>
+        
+        {/* Borrower Section */}
         <section>
           <PreviewHeader title="2. Borrower" />
           <div className="grid grid-cols-2 gap-x-12 px-2">
@@ -304,9 +251,26 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             <PreviewRow label="Originating Office" value={getNested(data, 'primaryBorrower.originatingOffice')} />
             <PreviewRow label="Classification" value={getNested(data, 'primaryBorrower.accountClassification')} />
           </div>
+          <div className="mt-4 px-2 grid grid-cols-2 gap-4">
+             <PreviewRow label="Leveraged" value={getNested(data, 'primaryBorrower.leveragedLending')} />
+             <PreviewRow label="Strategic" value={getNested(data, 'primaryBorrower.strategicLoan')} />
+          </div>
         </section>
+
+        {/* Credit & Exposure Section */}
         <section>
-          <PreviewHeader title="3. Facility Details" />
+          <PreviewHeader title="3. Credit & Exposure" />
+          <div className="grid grid-cols-2 gap-x-12 px-2">
+            <PreviewRow label="Requested" value={getNested(data, 'creditPosition.creditRequested')?.toLocaleString()} />
+            <PreviewRow label="Present Position" value={getNested(data, 'creditPosition.presentPosition')?.toLocaleString()} />
+            <PreviewRow label="Previous Auth" value={getNested(data, 'creditPosition.previousAuthorization')?.toLocaleString()} />
+            <PreviewRow label="Trading Line" value={getNested(data, 'creditPosition.tradingLine')?.toLocaleString()} />
+          </div>
+        </section>
+
+        {/* Facility Details Section */}
+        <section>
+          <PreviewHeader title="4. Facility Details" />
           <div className="grid grid-cols-2 gap-x-12 px-2">
             <PreviewRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} />
             <PreviewRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} />
@@ -314,8 +278,10 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             <PreviewRow label="Fee" value={getNested(data, 'facilityDetails.rates.fee')} />
           </div>
         </section>
+
+        {/* Legal & Covenants Section */}
         <section>
-          <PreviewHeader title="4. Legal & Covenants" />
+          <PreviewHeader title="5. Legal & Covenants" />
           <div className="px-2 space-y-4">
             <PreviewRow label="Agreement Type" value={getNested(data, 'documentation.agreementType')} />
             <PreviewRow label="Jurisdiction" value={getNested(data, 'documentation.jurisdiction')} />
@@ -326,8 +292,10 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             <PreviewTextArea label="Funding Conditions" value={getNested(data, 'documentation.fundingConditions')} />
           </div>
         </section>
+
+        {/* Risk & Ratings Section */}
         <section>
-          <PreviewHeader title="5. Risk & Ratings" />
+          <PreviewHeader title="6. Risk & Ratings" />
           <div className="px-2 space-y-8">
             <Header title="Borrower Rating" />
             <div className="grid grid-cols-2 gap-x-12">
@@ -364,7 +332,32 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             </div>
           </div>
         </section>
-        <section><PreviewHeader title="6. Analysis" /><PreviewTextArea label="Company Overview" value={getNested(data, 'analysis.overview.companyDesc')} /></section>
+
+        {/* Financials & RAROC Section */}
+        <section>
+          <PreviewHeader title="7. Financials & RAROC" />
+          <div className="grid grid-cols-2 gap-x-12 px-2">
+            <PreviewRow label="Economic RAROC" value={getNested(data, 'financialInfo.raroc.economicRaroc') + '%'} />
+            <PreviewRow label="Relationship RAROC" value={getNested(data, 'financialInfo.raroc.relationshipRaroc') + '%'} />
+            <PreviewRow label="LCC Status" value={getNested(data, 'financialInfo.raroc.lccStatus')} />
+            <PreviewRow label="Economic Capital" value={getNested(data, 'financialInfo.raroc.economicCapital')?.toLocaleString()} />
+          </div>
+        </section>
+
+        {/* Analysis Section */}
+        <section>
+          <PreviewHeader title="8. Analysis" />
+          <PreviewTextArea label="Company Overview" value={getNested(data, 'analysis.overview.companyDesc')} />
+        </section>
+
+        {/* Compliance & Sign-off Section */}
+        <section>
+          <PreviewHeader title="9. Compliance & Sign-off" />
+          <div className="grid grid-cols-2 gap-x-12 px-2">
+            <PreviewRow label="Approver" value={getNested(data, 'compliance.signOff.approver')} />
+            <PreviewRow label="Sign-off Date" value={getNested(data, 'compliance.signOff.date')} />
+          </div>
+        </section>
       </div>
     );
   }
@@ -520,6 +513,18 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </div>
           <Header title="Overview" />
           {wrapTextArea("Company Overview", "analysis.overview.companyDesc", 6)}
+        </div>
+      );
+    case 'compliance_signoff':
+      return (
+        <div className="grid grid-cols-2 gap-8">
+           {wrapInput("Name", "compliance.signOff.name")}
+           {wrapInput("Title", "compliance.signOff.title")}
+           {wrapInput("Date", "compliance.signOff.date")}
+           {wrapInput("Approver", "compliance.signOff.approver")}
+           <Header title="Legal Declarations" />
+           {wrapTextArea("Declaration of Interest", "compliance.legal.declarationInterest")}
+           {wrapTextArea("Directors", "compliance.legal.directors")}
         </div>
       );
     default:

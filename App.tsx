@@ -185,7 +185,8 @@ const App: React.FC = () => {
             <div className="mt-10 flex justify-end gap-5 pb-24">
               {activeSection === 'document_preview' && (
                 <button 
-                  onClick={() => exportToWord(data)}
+                  // Update: passed uploadedFiles to exportToWord to enable image embedding in the document.
+                  onClick={() => exportToWord(data, uploadedFiles)}
                   className="flex items-center gap-3 px-8 py-3 bg-tdgreen text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-tdgreen/20 hover:scale-105 active:scale-95 transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
