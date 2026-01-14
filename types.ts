@@ -39,6 +39,11 @@ export interface AiModel {
   badge: string;
 }
 
+export interface FieldSource {
+  filename: string;
+  pageNumber: string;
+}
+
 export interface CreditMemoData {
   primaryBorrower: {
     borrowerName: string;
@@ -175,7 +180,7 @@ export interface CreditMemoData {
     legal: { declarationInterest: string; directors: string; illegalTying: string };
     additionalComments: string;
   };
-  fieldSources?: Record<string, string>;
+  fieldSources?: Record<string, FieldSource>;
   [key: string]: any;
 }
 

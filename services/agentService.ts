@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
-import { CreditMemoData, AiModelId, SourceFile } from "../types";
+import { CreditMemoData, AiModelId, SourceFile, FieldSource } from "../types";
 import { AVAILABLE_MODELS } from "../constants";
 
 const MAX_RETRIES = 3;
@@ -177,7 +177,7 @@ async function callWithRetry(apiCall: () => Promise<any>, retries = MAX_RETRIES)
 /**
  * Agnostic agent orchestration for exhaustive document processing.
  */
-export const processDocumentWithAgents = async (files: File[], modelId: AiModelId): Promise<{ data: Partial<CreditMemoData>, fieldSources: Record<string, string> }> => {
+export const processDocumentWithAgents = async (files: File[], modelId: AiModelId): Promise<{ data: Partial<CreditMemoData>, fieldSources: Record<string, FieldSource> }> => {
   const filePromises = files.map(file => {
     return new Promise<{data: string, mimeType: string, name: string}>((resolve) => {
       const reader = new FileReader();
@@ -195,17 +195,18 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
     const extractionPrompt = `
       Act as an Elite Syndicate Credit Analyst. Perform an EXHAUSTIVE audit and extraction on all provided documents: ${fileDataList.map(f => f.name).join(', ')}.
       
-      Your goal is to populate a complete Credit Memo with granular precision. Extract the following categories:
+      Your goal is to populate a complete Credit Memo with granular precision. For EVERY field extracted, you MUST provide the 'sourceFile' (filename) and the 'pageNumber' where the data was found. If it's an image, use 'image' as page number or appropriate index.
       
-      1. PRIMARY BORROWER: Full legal name, headquarters office, parent group, and specific risk classifications (Leveraged, Strategic, Covenant Lite status).
-      2. CREDIT & EXPOSURE: Extract specific requested amounts, existing positions, committed limits > 1yr, and trading line sub-limits.
-      3. PURPOSE: Detailed business rationale for the loan and adjudication considerations.
-      4. RISK & RATINGS: Extract Borrower Risk Rating (BRR), current vs proposed. Scrape the full ratings table for Moody's, S&P, and Fitch (Issuer, Senior Unsecured, Outlook, and Date).
-      5. FACILITY DETAILS: Scrape pricing grids (Margins, Upfront Fees, Commitment Fees), Tenor (years/months), Maturity Dates, and specific repayment/prepayment terms.
-      6. LEGAL & COVENANTS: Extract EXHAUSTIVE text for Negative, Positive, and Financial Covenants. Scrape Reporting Requirements (e.g. 45 days for 10Q, 90 days for 10K).
-      7. ANALYSIS: Scrape the business description, recent corporate events, and sources/uses of funds if available.
+      Extract the following categories:
+      1. PRIMARY BORROWER: Full legal name, headquarters office, parent group, and specific risk classifications.
+      2. CREDIT & EXPOSURE: Extract specific requested amounts, existing positions, committed limits > 1yr.
+      3. PURPOSE: Detailed business rationale for the loan.
+      4. RISK & RATINGS: Extract Borrower Risk Rating (BRR). Scrape the full ratings table for Moody's, S&P, and Fitch.
+      5. FACILITY DETAILS: Pricing grids, Tenor, Maturity Dates.
+      6. LEGAL & COVENANTS: Extract EXHAUSTIVE text for Negative, Positive, and Financial Covenants. Scrape Reporting Requirements.
+      7. ANALYSIS: Scrape the business description, recent corporate events.
       
-      Identify the 'sourceFile' for EVERY single field extracted to maintain an audit trail.
+      Identify the 'sourceFile' and 'pageNumber' for EVERY single field extracted.
       Return valid JSON in the requested schema.
     `;
 
@@ -333,7 +334,15 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
           },
           fieldSources: {
             type: Type.ARRAY,
-            items: { type: Type.OBJECT, properties: { fieldPath: { type: Type.STRING }, sourceFile: { type: Type.STRING } } }
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                fieldPath: { type: Type.STRING }, 
+                sourceFile: { type: Type.STRING },
+                pageNumber: { type: Type.STRING }
+              },
+              required: ["fieldPath", "sourceFile"]
+            }
           }
         },
         required: ["extractedData", "fieldSources"]
@@ -347,9 +356,14 @@ export const processDocumentWithAgents = async (files: File[], modelId: AiModelI
   const extracted = extractionResult.extractedData || {};
   const rawFieldSources = extractionResult.fieldSources || [];
   
-  const fieldSources: Record<string, string> = {};
+  const fieldSources: Record<string, FieldSource> = {};
   rawFieldSources.forEach((item: any) => {
-    if (item.fieldPath && item.sourceFile) fieldSources[item.fieldPath] = item.sourceFile;
+    if (item.fieldPath && item.sourceFile) {
+      fieldSources[item.fieldPath] = {
+        filename: item.sourceFile,
+        pageNumber: item.pageNumber || "N/A"
+      };
+    }
   });
 
   const synthesizeNarrative = async () => {

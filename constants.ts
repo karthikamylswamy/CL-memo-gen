@@ -53,7 +53,7 @@ export const SECTIONS: Section[] = [
   { id: 'document_preview', label: 'Final Document Preview', icon: '👀', category: 'Review' }
 ];
 
-export const INITIAL_DATA: CreditMemoData = {
+export const getInitialData = (): CreditMemoData => ({
   primaryBorrower: {
     borrowerName: '',
     originatingOffice: '',
@@ -111,7 +111,7 @@ export const INITIAL_DATA: CreditMemoData = {
       raPolicyModel: ''
     },
     publicRatings: [
-      { agency: 'Moody\'s', issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' },
+      { agency: "Moody's", issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' },
       { agency: 'S&P', issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' },
       { agency: 'Fitch', issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' }
     ],
@@ -147,9 +147,10 @@ export const INITIAL_DATA: CreditMemoData = {
   },
   compliance: {
     signOff: { name: '', title: '', date: '', approver: '' },
-    // Fix: replaced 'string' type placeholders with empty string literals to resolve 'type-used-as-value' errors.
     legal: { declarationInterest: '', directors: '', illegalTying: '' },
     additionalComments: '',
   },
   fieldSources: {}
-};
+});
+
+export const INITIAL_DATA = getInitialData();

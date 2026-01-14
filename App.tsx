@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { CreditMemoData, SectionKey, SourceFile, AiModelId } from './types';
-import { SECTIONS, INITIAL_DATA, AVAILABLE_MODELS } from './constants';
+import { SECTIONS, getInitialData, AVAILABLE_MODELS } from './constants';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SectionRenderer from './components/SectionRenderer';
@@ -29,7 +29,7 @@ const deepMerge = (target: any, source: any) => {
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<SectionKey>('borrower_details');
-  const [data, setData] = useState<CreditMemoData>(INITIAL_DATA);
+  const [data, setData] = useState<CreditMemoData>(getInitialData());
   const [uploadedFiles, setUploadedFiles] = useState<SourceFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedCount, setExtractedCount] = useState(0);
@@ -38,18 +38,27 @@ const App: React.FC = () => {
   const [previewFile, setPreviewFile] = useState<SourceFile | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<AiModelId>('gemini-3-flash-preview');
 
+  // Load data on start
   useEffect(() => {
     const init = async () => {
-      const savedMemo = await db.loadMemo();
-      const savedFiles = await db.loadFiles();
-      if (savedMemo) setData(savedMemo);
-      if (savedFiles) setUploadedFiles(savedFiles);
+      try {
+        const savedMemo = await db.loadMemo();
+        const savedFiles = await db.loadFiles();
+        if (savedMemo) setData(savedMemo);
+        if (savedFiles) setUploadedFiles(savedFiles);
+      } catch (err) {
+        console.error("Failed to load data from IndexedDB:", err);
+      }
     };
     init();
   }, []);
 
+  // Save data on change
   useEffect(() => {
-    if (data !== INITIAL_DATA) {
+    const freshInitial = getInitialData();
+    // Only save if data is actually different from initial state
+    // and we aren't currently resetting
+    if (JSON.stringify(data) !== JSON.stringify(freshInitial)) {
       db.saveMemo(data).then(() => setLastSaved(new Date()));
     }
   }, [data]);
@@ -84,7 +93,6 @@ const App: React.FC = () => {
     setUploadedFiles(prev => [...prev, ...loadedSourceFiles]);
 
     try {
-      // Pass the selected model ID to the agent service
       const { data: extractedData, fieldSources } = await processDocumentWithAgents(files, selectedModelId);
       
       const newData = deepMerge(data, extractedData);
@@ -104,12 +112,19 @@ const App: React.FC = () => {
   };
 
   const handleReset = async () => {
-    if (confirm("Are you sure you want to clear this workspace?")) {
-      await db.clearAllData();
-      setData(INITIAL_DATA);
-      setUploadedFiles([]);
-      setExtractedCount(0);
-      setLastSaved(null);
+    if (confirm("Are you sure you want to clear this workspace? All document data and extracted fields will be permanently removed.")) {
+      try {
+        await db.clearAllData();
+        // Use a function to return a fresh copy to prevent mutations leaking
+        setData(getInitialData());
+        setUploadedFiles([]);
+        setExtractedCount(0);
+        setLastSaved(null);
+        setActiveSection('borrower_details');
+      } catch (err) {
+        console.error("Failed to clear data:", err);
+        alert("Reset failed. Please try refreshing the page.");
+      }
     }
   };
 
@@ -185,7 +200,6 @@ const App: React.FC = () => {
             <div className="mt-10 flex justify-end gap-5 pb-24">
               {activeSection === 'document_preview' && (
                 <button 
-                  // Update: passed uploadedFiles to exportToWord to enable image embedding in the document.
                   onClick={() => exportToWord(data, uploadedFiles)}
                   className="flex items-center gap-3 px-8 py-3 bg-tdgreen text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-tdgreen/20 hover:scale-105 active:scale-95 transition-all"
                 >
@@ -195,9 +209,9 @@ const App: React.FC = () => {
               )}
               <button 
                 className="px-10 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-lg shadow-slate-200/20 font-bold text-sm"
-                onClick={() => alert("Workspace state saved to local storage.")}
+                onClick={() => alert("Workspace state saved to persistent storage.")}
               >
-                Force Save
+                Sync Status
               </button>
             </div>
           </div>

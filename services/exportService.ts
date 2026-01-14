@@ -1,5 +1,5 @@
 
-import { CreditMemoData, SourceFile } from "../types";
+import { CreditMemoData, SourceFile, FieldSource } from "../types";
 
 /**
  * Converts simple markdown tables to HTML table tags for Word compatibility.
@@ -61,6 +61,7 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
       .field { margin-bottom: 4pt; font-size: 10pt; }
       .label { font-weight: bold; width: 150pt; display: inline-block; color: #64748b; }
       .value { font-weight: bold; }
+      .source { font-size: 7pt; color: #94a3b8; font-style: italic; margin-left: 10pt; font-weight: normal; }
       .narrative { margin-top: 10pt; font-size: 10pt; background: #fff; padding: 5pt; }
       table { width:100%; border-collapse:collapse; margin-top: 10pt; }
       th, td { border: 1px solid #ddd; padding: 6pt; font-size: 9pt; }
@@ -69,7 +70,21 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
     </head><body>`;
 
   const footer = "</body></html>";
+  
   const getVal = (v: any) => v === true ? "YES" : v === false ? "NO" : (v || "N/A");
+  
+  const getSourceStr = (path: string) => {
+    const s = data.fieldSources?.[path];
+    return s ? `<span class="source">[Ref: ${s.filename} | P.${s.pageNumber}]</span>` : '';
+  };
+
+  const renderField = (label: string, value: any, path: string) => `
+    <div class="field">
+      <span class="label">${label}:</span> 
+      <span class="value">${getVal(value)}</span>
+      ${getSourceStr(path)}
+    </div>
+  `;
 
   const recommendationHtml = processNarrativeForWord(data.analysis?.justification?.recommendation || "", files);
 
@@ -79,40 +94,41 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
     
     <h2>1. Recommendation</h2>
     <div class="recommendation">${recommendationHtml}</div>
+    ${getSourceStr('analysis.justification.recommendation')}
 
     <h2>2. Borrower Profile</h2>
-    <div class="field"><span class="label">Legal Name:</span> <span class="value">${getVal(data.primaryBorrower?.borrowerName)}</span></div>
-    <div class="field"><span class="label">Group:</span> <span class="value">${getVal(data.primaryBorrower?.group)}</span></div>
-    <div class="field"><span class="label">Originating Office:</span> <span class="value">${getVal(data.primaryBorrower?.originatingOffice)}</span></div>
-    <div class="field"><span class="label">Classification:</span> <span class="value">${getVal(data.primaryBorrower?.accountClassification)}</span></div>
-    <div class="field"><span class="label">Leveraged:</span> <span class="value">${getVal(data.primaryBorrower?.leveragedLending)}</span></div>
+    ${renderField("Legal Name", data.primaryBorrower?.borrowerName, "primaryBorrower.borrowerName")}
+    ${renderField("Group", data.primaryBorrower?.group, "primaryBorrower.group")}
+    ${renderField("Originating Office", data.primaryBorrower?.originatingOffice, "primaryBorrower.originatingOffice")}
+    ${renderField("Classification", data.primaryBorrower?.accountClassification, "primaryBorrower.accountClassification")}
+    ${renderField("Leveraged", data.primaryBorrower?.leveragedLending, "primaryBorrower.leveragedLending")}
 
     <h2>3. Credit & Exposure</h2>
-    <div class="field"><span class="label">Amount Requested:</span> <span class="value">${data.creditPosition?.creditRequested?.toLocaleString() || "0"}</span></div>
-    <div class="field"><span class="label">Present Position:</span> <span class="value">${data.creditPosition?.presentPosition?.toLocaleString() || "0"}</span></div>
-    <div class="field"><span class="label">Previous Auth:</span> <span class="value">${data.creditPosition?.previousAuthorization?.toLocaleString() || "0"}</span></div>
-    <div class="field"><span class="label">Trading Line:</span> <span class="value">${data.creditPosition?.tradingLine?.toLocaleString() || "0"}</span></div>
+    ${renderField("Amount Requested", data.creditPosition?.creditRequested?.toLocaleString(), "creditPosition.creditRequested")}
+    ${renderField("Present Position", data.creditPosition?.presentPosition?.toLocaleString(), "creditPosition.presentPosition")}
+    ${renderField("Previous Auth", data.creditPosition?.previousAuthorization?.toLocaleString(), "creditPosition.previousAuthorization")}
+    ${renderField("Trading Line", data.creditPosition?.tradingLine?.toLocaleString(), "creditPosition.tradingLine")}
 
     <h2>4. Facility Details</h2>
-    <div class="field"><span class="label">Margin:</span> <span class="value">${getVal(data.facilityDetails?.rates?.margin)}</span></div>
-    <div class="field"><span class="label">Tenor:</span> <span class="value">${getVal(data.facilityDetails?.terms?.tenor)}</span></div>
-    <div class="field"><span class="label">Maturity:</span> <span class="value">${getVal(data.facilityDetails?.terms?.maturity)}</span></div>
-    <div class="field"><span class="label">Fee:</span> <span class="value">${getVal(data.facilityDetails?.rates?.fee)}</span></div>
+    ${renderField("Margin", data.facilityDetails?.rates?.margin, "facilityDetails.rates.margin")}
+    ${renderField("Tenor", data.facilityDetails?.terms?.tenor, "facilityDetails.terms.tenor")}
+    ${renderField("Maturity", data.facilityDetails?.terms?.maturity, "facilityDetails.terms.maturity")}
+    ${renderField("Fee", data.facilityDetails?.rates?.fee, "facilityDetails.rates.fee")}
 
     <h2>5. Legal & Covenants</h2>
-    <div class="field"><span class="label">Agreement Type:</span> <span class="value">${getVal(data.documentation?.agreementType)}</span></div>
-    <div class="field"><span class="label">Jurisdiction:</span> <span class="value">${getVal(data.documentation?.jurisdiction)}</span></div>
-    <div class="narrative"><strong>Financial Covenants:</strong><br/>${data.documentation?.financialCovenants || "N/A"}</div>
-    <div class="narrative"><strong>Negative Covenants:</strong><br/>${data.documentation?.negativeCovenants || "N/A"}</div>
-    <div class="narrative"><strong>Positive Covenants:</strong><br/>${data.documentation?.positiveCovenants || "N/A"}</div>
-    <div class="narrative"><strong>Reporting Requirements:</strong><br/>${data.documentation?.reportingReqs || "N/A"}</div>
-    <div class="narrative"><strong>Funding Conditions:</strong><br/>${data.documentation?.fundingConditions || "N/A"}</div>
+    ${renderField("Agreement Type", data.documentation?.agreementType, "documentation.agreementType")}
+    ${renderField("Jurisdiction", data.documentation?.jurisdiction, "documentation.jurisdiction")}
+    <div class="narrative"><strong>Financial Covenants:</strong> ${getSourceStr('documentation.financialCovenants')}<br/>${data.documentation?.financialCovenants || "N/A"}</div>
+    <div class="narrative"><strong>Negative Covenants:</strong> ${getSourceStr('documentation.negativeCovenants')}<br/>${data.documentation?.negativeCovenants || "N/A"}</div>
+    <div class="narrative"><strong>Positive Covenants:</strong> ${getSourceStr('documentation.positiveCovenants')}<br/>${data.documentation?.positiveCovenants || "N/A"}</div>
+    <div class="narrative"><strong>Reporting Requirements:</strong> ${getSourceStr('documentation.reportingReqs')}<br/>${data.documentation?.reportingReqs || "N/A"}</div>
+    <div class="narrative"><strong>Funding Conditions:</strong> ${getSourceStr('documentation.fundingConditions')}<br/>${data.documentation?.fundingConditions || "N/A"}</div>
 
     <h2>6. Risk & Ratings</h2>
     <h3>Borrower Rating</h3>
-    <div class="field"><span class="label">Proposed BRR:</span> <span class="value">${getVal(data.riskAssessment?.borrowerRating?.proposedBrr)}</span></div>
-    <div class="field"><span class="label">Current BRR:</span> <span class="value">${getVal(data.riskAssessment?.borrowerRating?.currentBrr)}</span></div>
-    <div class="field"><span class="label">Risk Analyst:</span> <span class="value">${getVal(data.riskAssessment?.borrowerRating?.riskAnalyst)}</span></div>
+    ${renderField("Proposed BRR", data.riskAssessment?.borrowerRating?.proposedBrr, "riskAssessment.borrowerRating.proposedBrr")}
+    ${renderField("Current BRR", data.riskAssessment?.borrowerRating?.currentBrr, "riskAssessment.borrowerRating.currentBrr")}
+    ${renderField("Risk Analyst", data.riskAssessment?.borrowerRating?.riskAnalyst, "riskAssessment.borrowerRating.riskAnalyst")}
     
     <h3>Agency Ratings</h3>
     <table>
@@ -137,16 +153,16 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
     </table>
 
     <h2>7. Financials & RAROC</h2>
-    <div class="field"><span class="label">Economic RAROC:</span> <span class="value">${getVal(data.financialInfo?.raroc?.economicRaroc)}%</span></div>
-    <div class="field"><span class="label">Relationship RAROC:</span> <span class="value">${getVal(data.financialInfo?.raroc?.relationshipRaroc)}%</span></div>
-    <div class="field"><span class="label">LCC Status:</span> <span class="value">${getVal(data.financialInfo?.raroc?.lccStatus)}</span></div>
+    ${renderField("Economic RAROC", data.financialInfo?.raroc?.economicRaroc + "%", "financialInfo.raroc.economicRaroc")}
+    ${renderField("Relationship RAROC", data.financialInfo?.raroc?.relationshipRaroc + "%", "financialInfo.raroc.relationshipRaroc")}
+    ${renderField("LCC Status", data.financialInfo?.raroc?.lccStatus, "financialInfo.raroc.lccStatus")}
 
     <h2>8. Analysis</h2>
-    <div class="narrative">${processNarrativeForWord(data.analysis?.overview?.companyDesc || "", files)}</div>
+    <div class="narrative">${getSourceStr('analysis.overview.companyDesc')}<br/>${processNarrativeForWord(data.analysis?.overview?.companyDesc || "", files)}</div>
 
     <h2>9. Compliance</h2>
-    <div class="field"><span class="label">Approver:</span> <span class="value">${getVal(data.compliance?.signOff?.approver)}</span></div>
-    <div class="field"><span class="label">Date:</span> <span class="value">${getVal(data.compliance?.signOff?.date)}</span></div>
+    ${renderField("Approver", data.compliance?.signOff?.approver, "compliance.signOff.approver")}
+    ${renderField("Date", data.compliance?.signOff?.date, "compliance.signOff.date")}
   `;
 
   const source = header + content + footer;

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CreditMemoData, SectionKey, SourceFile, PublicRating } from '../types';
+import { CreditMemoData, SectionKey, SourceFile, PublicRating, FieldSource } from '../types';
 
 interface SectionRendererProps {
   section: SectionKey;
@@ -102,16 +102,22 @@ const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text
 
 const getNested = (obj: any, path: string) => path.split('.').reduce((o, i) => (o && typeof o === 'object' ? o[i] : undefined), obj) ?? '';
 
-const SourceBadge: React.FC<{ filename?: string }> = ({ filename }) => {
-  if (!filename) return null;
+const SourceBadge: React.FC<{ source?: FieldSource }> = ({ source }) => {
+  if (!source) return null;
   return (
     <div className="group relative inline-flex ml-2">
-      <div className="p-1 bg-tdgreen/10 rounded-lg text-tdgreen hover:bg-tdgreen/20 transition-all cursor-help">
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+      <div className="px-2 py-0.5 bg-tdgreen/10 rounded-full text-tdgreen border border-tdgreen/20 flex items-center gap-1.5 transition-all hover:bg-tdgreen/20 cursor-help">
+        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        <span className="text-[8px] font-black uppercase tracking-tighter">Source: P.{source.pageNumber}</span>
       </div>
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-        <div className="bg-slate-900 text-white text-[10px] font-black py-1.5 px-3 rounded-lg whitespace-nowrap shadow-xl flex items-center gap-2">
-          <span className="opacity-60 uppercase tracking-widest">Source:</span> {filename}
+        <div className="bg-slate-900 text-white text-[10px] font-black py-2 px-3 rounded-xl whitespace-nowrap shadow-2xl flex flex-col gap-1 ring-1 ring-white/10">
+          <div className="flex items-center gap-2 border-b border-white/10 pb-1 mb-1">
+            <span className="opacity-60 uppercase tracking-widest text-[8px]">Filename:</span> {source.filename}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="opacity-60 uppercase tracking-widest text-[8px]">Page Reference:</span> {source.pageNumber}
+          </div>
         </div>
         <div className="w-2 h-2 bg-slate-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2"></div>
       </div>
@@ -119,12 +125,12 @@ const SourceBadge: React.FC<{ filename?: string }> = ({ filename }) => {
   );
 };
 
-const Input: React.FC<{ label: string, value: any, onChange: (val: any) => void, source?: string, type?: string, placeholder?: string }> = ({ label, value, onChange, source, type = "text", placeholder = "" }) => (
+const Input: React.FC<{ label: string, value: any, onChange: (val: any) => void, source?: FieldSource, type?: string, placeholder?: string }> = ({ label, value, onChange, source, type = "text", placeholder = "" }) => (
   <div className="space-y-1.5">
     <div className="flex justify-between items-center">
       <div className="flex items-center">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
-        <SourceBadge filename={source} />
+        <SourceBadge source={source} />
       </div>
     </div>
     <div className="relative">
@@ -139,12 +145,12 @@ const Input: React.FC<{ label: string, value: any, onChange: (val: any) => void,
   </div>
 );
 
-const TextArea: React.FC<{ label: string, value: string, onChange: (val: string) => void, source?: string, rows?: number, className?: string }> = ({ label, value, onChange, source, rows = 4, className = "" }) => (
+const TextArea: React.FC<{ label: string, value: string, onChange: (val: string) => void, source?: FieldSource, rows?: number, className?: string }> = ({ label, value, onChange, source, rows = 4, className = "" }) => (
   <div className={`space-y-1.5 ${className}`}>
     <div className="flex justify-between items-center">
       <div className="flex items-center">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
-        <SourceBadge filename={source} />
+        <SourceBadge source={source} />
       </div>
     </div>
     <div className="relative">
@@ -178,28 +184,59 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
   const wrapCheckbox = (label: string, path: string) => (
     <label className="flex items-center gap-4 p-5 rounded-xl border border-slate-100 hover:border-tdgreen/20 hover:bg-tdgreen-light/30 cursor-pointer transition-all shadow-sm bg-white group">
       <input type="checkbox" checked={!!getNested(data, path)} onChange={(e) => setNested(path, e.target.checked)} className="w-6 h-6 text-tdgreen rounded-lg border-slate-300 focus:ring-tdgreen transition-all" />
-      <div className="flex flex-col">
+      <div className="flex flex-col flex-1">
         <span className="text-sm font-bold text-slate-700">{label}</span>
-        {data.fieldSources?.[path] && <span className="text-[8px] font-black text-tdgreen uppercase tracking-widest mt-1">Source: {data.fieldSources[path]}</span>}
+        {data.fieldSources?.[path] && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[8px] font-black text-tdgreen uppercase tracking-widest bg-tdgreen/10 px-2 py-0.5 rounded-full border border-tdgreen/20">
+              {data.fieldSources[path].filename} • P.{data.fieldSources[path].pageNumber}
+            </span>
+          </div>
+        )}
       </div>
     </label>
   );
 
-  const PreviewRow = ({ label, value }: { label: string, value: any }) => (
-    <div className="flex border-b border-slate-50 py-3 text-sm">
-      <span className="w-1/3 text-slate-400 font-bold uppercase tracking-[0.1em] text-[10px]">{label}:</span>
-      <span className="w-2/3 font-black text-slate-800 break-words">{value === true ? "YES" : value === false ? "NO" : (value || "N/A")}</span>
-    </div>
-  );
-
-  const PreviewTextArea = ({ label, value }: { label: string, value: string }) => !value ? null : (
-    <div className="py-6">
-      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 border-l-4 border-tdgreen pl-3">{label}</div>
-      <div className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-inner">
-        <SmartNarrative text={value} files={files} />
+  const PreviewRow = ({ label, value, path }: { label: string, value: any, path?: string }) => {
+    const source = path ? data.fieldSources?.[path] : undefined;
+    return (
+      <div className="flex border-b border-slate-50 py-3 text-sm group relative">
+        <span className="w-1/3 text-slate-400 font-bold uppercase tracking-[0.1em] text-[10px]">{label}:</span>
+        <div className="w-2/3 flex flex-col">
+          <span className="font-black text-slate-800 break-words">
+            {value === true ? "YES" : value === false ? "NO" : (value || "N/A")}
+          </span>
+          {source && (
+            <span className="text-[8px] text-tdgreen font-black uppercase tracking-widest mt-1 opacity-60 group-hover:opacity-100 transition-all">
+              {source.filename} | Page {source.pageNumber}
+            </span>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const PreviewTextArea = ({ label, value, path }: { label: string, value: string, path?: string }) => {
+    const source = path ? data.fieldSources?.[path] : undefined;
+    if (!value) return null;
+    return (
+      <div className="py-6">
+        <div className="flex items-center justify-between mb-3 border-l-4 border-tdgreen pl-3">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</div>
+          {source && (
+            <div className="flex items-center gap-2">
+              <span className="text-[8px] font-black text-tdgreen/60 uppercase tracking-widest">
+                Source: {source.filename} (p.{source.pageNumber})
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-inner">
+          <SmartNarrative text={value} files={files} />
+        </div>
+      </div>
+    );
+  };
 
   const PreviewHeader = ({ title }: { title: string }) => <h2 className="text-xl font-black bg-slate-900 text-white px-6 py-3 uppercase tracking-widest mb-4 mt-8 first:mt-0">{title}</h2>;
   const Header = ({ title }: { title: string }) => <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] border-b border-slate-100 pb-3 mt-4 mb-4 col-span-full">{title}</h3>;
@@ -240,20 +277,20 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         </div>
         
         {/* Recommendation Section */}
-        <section><PreviewHeader title="1. Recommendation" /><PreviewTextArea label="Summary" value={getNested(data, 'analysis.justification.recommendation')} /></section>
+        <section><PreviewHeader title="1. Recommendation" /><PreviewTextArea label="Summary" value={getNested(data, 'analysis.justification.recommendation')} path="analysis.justification.recommendation" /></section>
         
         {/* Borrower Section */}
         <section>
           <PreviewHeader title="2. Borrower" />
           <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Name" value={getNested(data, 'primaryBorrower.borrowerName')} />
-            <PreviewRow label="Group" value={getNested(data, 'primaryBorrower.group')} />
-            <PreviewRow label="Originating Office" value={getNested(data, 'primaryBorrower.originatingOffice')} />
-            <PreviewRow label="Classification" value={getNested(data, 'primaryBorrower.accountClassification')} />
+            <PreviewRow label="Name" value={getNested(data, 'primaryBorrower.borrowerName')} path="primaryBorrower.borrowerName" />
+            <PreviewRow label="Group" value={getNested(data, 'primaryBorrower.group')} path="primaryBorrower.group" />
+            <PreviewRow label="Originating Office" value={getNested(data, 'primaryBorrower.originatingOffice')} path="primaryBorrower.originatingOffice" />
+            <PreviewRow label="Classification" value={getNested(data, 'primaryBorrower.accountClassification')} path="primaryBorrower.accountClassification" />
           </div>
           <div className="mt-4 px-2 grid grid-cols-2 gap-4">
-             <PreviewRow label="Leveraged" value={getNested(data, 'primaryBorrower.leveragedLending')} />
-             <PreviewRow label="Strategic" value={getNested(data, 'primaryBorrower.strategicLoan')} />
+             <PreviewRow label="Leveraged" value={getNested(data, 'primaryBorrower.leveragedLending')} path="primaryBorrower.leveragedLending" />
+             <PreviewRow label="Strategic" value={getNested(data, 'primaryBorrower.strategicLoan')} path="primaryBorrower.strategicLoan" />
           </div>
         </section>
 
@@ -261,10 +298,10 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         <section>
           <PreviewHeader title="3. Credit & Exposure" />
           <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Requested" value={getNested(data, 'creditPosition.creditRequested')?.toLocaleString()} />
-            <PreviewRow label="Present Position" value={getNested(data, 'creditPosition.presentPosition')?.toLocaleString()} />
-            <PreviewRow label="Previous Auth" value={getNested(data, 'creditPosition.previousAuthorization')?.toLocaleString()} />
-            <PreviewRow label="Trading Line" value={getNested(data, 'creditPosition.tradingLine')?.toLocaleString()} />
+            <PreviewRow label="Requested" value={getNested(data, 'creditPosition.creditRequested')?.toLocaleString()} path="creditPosition.creditRequested" />
+            <PreviewRow label="Present Position" value={getNested(data, 'creditPosition.presentPosition')?.toLocaleString()} path="creditPosition.presentPosition" />
+            <PreviewRow label="Previous Auth" value={getNested(data, 'creditPosition.previousAuthorization')?.toLocaleString()} path="creditPosition.previousAuthorization" />
+            <PreviewRow label="Trading Line" value={getNested(data, 'creditPosition.tradingLine')?.toLocaleString()} path="creditPosition.tradingLine" />
           </div>
         </section>
 
@@ -272,10 +309,10 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         <section>
           <PreviewHeader title="4. Facility Details" />
           <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} />
-            <PreviewRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} />
-            <PreviewRow label="Maturity" value={getNested(data, 'facilityDetails.terms.maturity')} />
-            <PreviewRow label="Fee" value={getNested(data, 'facilityDetails.rates.fee')} />
+            <PreviewRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} path="facilityDetails.rates.margin" />
+            <PreviewRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} path="facilityDetails.terms.tenor" />
+            <PreviewRow label="Maturity" value={getNested(data, 'facilityDetails.terms.maturity')} path="facilityDetails.terms.maturity" />
+            <PreviewRow label="Fee" value={getNested(data, 'facilityDetails.rates.fee')} path="facilityDetails.rates.fee" />
           </div>
         </section>
 
@@ -283,13 +320,13 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         <section>
           <PreviewHeader title="5. Legal & Covenants" />
           <div className="px-2 space-y-4">
-            <PreviewRow label="Agreement Type" value={getNested(data, 'documentation.agreementType')} />
-            <PreviewRow label="Jurisdiction" value={getNested(data, 'documentation.jurisdiction')} />
-            <PreviewTextArea label="Financial Covenants" value={getNested(data, 'documentation.financialCovenants')} />
-            <PreviewTextArea label="Negative Covenants" value={getNested(data, 'documentation.negativeCovenants')} />
-            <PreviewTextArea label="Positive Covenants" value={getNested(data, 'documentation.positiveCovenants')} />
-            <PreviewTextArea label="Reporting Requirements" value={getNested(data, 'documentation.reportingReqs')} />
-            <PreviewTextArea label="Funding Conditions" value={getNested(data, 'documentation.fundingConditions')} />
+            <PreviewRow label="Agreement Type" value={getNested(data, 'documentation.agreementType')} path="documentation.agreementType" />
+            <PreviewRow label="Jurisdiction" value={getNested(data, 'documentation.jurisdiction')} path="documentation.jurisdiction" />
+            <PreviewTextArea label="Financial Covenants" value={getNested(data, 'documentation.financialCovenants')} path="documentation.financialCovenants" />
+            <PreviewTextArea label="Negative Covenants" value={getNested(data, 'documentation.negativeCovenants')} path="documentation.negativeCovenants" />
+            <PreviewTextArea label="Positive Covenants" value={getNested(data, 'documentation.positiveCovenants')} path="documentation.positiveCovenants" />
+            <PreviewTextArea label="Reporting Requirements" value={getNested(data, 'documentation.reportingReqs')} path="documentation.reportingReqs" />
+            <PreviewTextArea label="Funding Conditions" value={getNested(data, 'documentation.fundingConditions')} path="documentation.fundingConditions" />
           </div>
         </section>
 
@@ -299,11 +336,11 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <div className="px-2 space-y-8">
             <Header title="Borrower Rating" />
             <div className="grid grid-cols-2 gap-x-12">
-               <PreviewRow label="Proposed BRR" value={getNested(data, 'riskAssessment.borrowerRating.proposedBrr')} />
-               <PreviewRow label="Current BRR" value={getNested(data, 'riskAssessment.borrowerRating.currentBrr')} />
-               <PreviewRow label="Risk Analyst" value={getNested(data, 'riskAssessment.borrowerRating.riskAnalyst')} />
-               <PreviewRow label="New RA / Policy" value={getNested(data, 'riskAssessment.borrowerRating.newRaPolicy')} />
-               <PreviewRow label="RA / Policy Model" value={getNested(data, 'riskAssessment.borrowerRating.raPolicyModel')} />
+               <PreviewRow label="Proposed BRR" value={getNested(data, 'riskAssessment.borrowerRating.proposedBrr')} path="riskAssessment.borrowerRating.proposedBrr" />
+               <PreviewRow label="Current BRR" value={getNested(data, 'riskAssessment.borrowerRating.currentBrr')} path="riskAssessment.borrowerRating.currentBrr" />
+               <PreviewRow label="Risk Analyst" value={getNested(data, 'riskAssessment.borrowerRating.riskAnalyst')} path="riskAssessment.borrowerRating.riskAnalyst" />
+               <PreviewRow label="New RA / Policy" value={getNested(data, 'riskAssessment.borrowerRating.newRaPolicy')} path="riskAssessment.borrowerRating.newRaPolicy" />
+               <PreviewRow label="RA / Policy Model" value={getNested(data, 'riskAssessment.borrowerRating.raPolicyModel')} path="riskAssessment.borrowerRating.raPolicyModel" />
             </div>
             <Header title="Agency Ratings" />
             <div className="overflow-hidden rounded-xl border border-slate-200">
@@ -337,25 +374,25 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         <section>
           <PreviewHeader title="7. Financials & RAROC" />
           <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Economic RAROC" value={getNested(data, 'financialInfo.raroc.economicRaroc') + '%'} />
-            <PreviewRow label="Relationship RAROC" value={getNested(data, 'financialInfo.raroc.relationshipRaroc') + '%'} />
-            <PreviewRow label="LCC Status" value={getNested(data, 'financialInfo.raroc.lccStatus')} />
-            <PreviewRow label="Economic Capital" value={getNested(data, 'financialInfo.raroc.economicCapital')?.toLocaleString()} />
+            <PreviewRow label="Economic RAROC" value={getNested(data, 'financialInfo.raroc.economicRaroc') + '%'} path="financialInfo.raroc.economicRaroc" />
+            <PreviewRow label="Relationship RAROC" value={getNested(data, 'financialInfo.raroc.relationshipRaroc') + '%'} path="financialInfo.raroc.relationshipRaroc" />
+            <PreviewRow label="LCC Status" value={getNested(data, 'financialInfo.raroc.lccStatus')} path="financialInfo.raroc.lccStatus" />
+            <PreviewRow label="Economic Capital" value={getNested(data, 'financialInfo.raroc.economicCapital')?.toLocaleString()} path="financialInfo.raroc.economicCapital" />
           </div>
         </section>
 
         {/* Analysis Section */}
         <section>
           <PreviewHeader title="8. Analysis" />
-          <PreviewTextArea label="Company Overview" value={getNested(data, 'analysis.overview.companyDesc')} />
+          <PreviewTextArea label="Company Overview" value={getNested(data, 'analysis.overview.companyDesc')} path="analysis.overview.companyDesc" />
         </section>
 
         {/* Compliance & Sign-off Section */}
         <section>
           <PreviewHeader title="9. Compliance & Sign-off" />
           <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Approver" value={getNested(data, 'compliance.signOff.approver')} />
-            <PreviewRow label="Sign-off Date" value={getNested(data, 'compliance.signOff.date')} />
+            <PreviewRow label="Approver" value={getNested(data, 'compliance.signOff.approver')} path="compliance.signOff.approver" />
+            <PreviewRow label="Sign-off Date" value={getNested(data, 'compliance.signOff.date')} path="compliance.signOff.date" />
           </div>
         </section>
       </div>
