@@ -201,23 +201,23 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         {/* Section A */}
         <MemoSection id="A" title="Leveraged Lending Policy, TDS Credit Standards, and other reporting Classification">
           <div className="grid grid-cols-2 gap-x-16 gap-y-1">
-            <FlagRow label="TDS Corporate Banking Credit Standards Exception" value={data.primaryBorrower.creditException} />
-            <FlagRow label="Weak Underwriting" value={data.primaryBorrower.weakUnderwriting} />
-            <FlagRow label="TDS Leveraged Loan" value={data.primaryBorrower.tdsLeveragedLoan} />
-            <FlagRow label="Regulatory Leveraged Loan" value={data.primaryBorrower.regulatoryLeveragedLoan} />
-            <FlagRow label="5 Rated leveraged Loan with leverage > 5.5x" value={data.primaryBorrower.highLeverageLoan} />
-            <FlagRow label="Sufficient room within Leverage Loan dollar policy limit" value={data.primaryBorrower.leveragePolicyRoom} />
-            <FlagRow label="Leverage > 6.0x" value={data.primaryBorrower.extremeLeverage} />
-            <FlagRow label="HRSL Sub limit" value={data.primaryBorrower.hrslSubLimit} />
-            <FlagRow label="CMT Strategic Loan Sub Limit" value={data.primaryBorrower.cmtStrategicLimit} />
-            <FlagRow label="ESG Strategic Loan Sub Limit" value={data.primaryBorrower.esgStrategicLimit} />
-            <FlagRow label="Euro Infrastructure Sub Limit" value={data.primaryBorrower.euroInfraLimit} />
-            <FlagRow label="High Risk Account (QHRR)" value={data.primaryBorrower.highRiskAccount} />
-            <FlagRow label="Spotlight Account" value={data.primaryBorrower.spotlightAccount} />
-            <FlagRow label="Covenant-Lite" value={data.primaryBorrower.covenantLite} />
+            <FlagRow label="TDS Corporate Banking Credit Standards Exception" value={data.primaryBorrower?.creditException} />
+            <FlagRow label="Weak Underwriting" value={data.primaryBorrower?.weakUnderwriting} />
+            <FlagRow label="TDS Leveraged Loan" value={data.primaryBorrower?.tdsLeveragedLoan} />
+            <FlagRow label="Regulatory Leveraged Loan" value={data.primaryBorrower?.regulatoryLeveragedLoan} />
+            <FlagRow label="5 Rated leveraged Loan with leverage > 5.5x" value={data.primaryBorrower?.highLeverageLoan} />
+            <FlagRow label="Sufficient room within Leverage Loan dollar policy limit" value={data.primaryBorrower?.leveragePolicyRoom} />
+            <FlagRow label="Leverage > 6.0x" value={data.primaryBorrower?.extremeLeverage} />
+            <FlagRow label="HRSL Sub limit" value={data.primaryBorrower?.hrslSubLimit} />
+            <FlagRow label="CMT Strategic Loan Sub Limit" value={data.primaryBorrower?.cmtStrategicLimit} />
+            <FlagRow label="ESG Strategic Loan Sub Limit" value={data.primaryBorrower?.esgStrategicLimit} />
+            <FlagRow label="Euro Infrastructure Sub Limit" value={data.primaryBorrower?.euroInfraLimit} />
+            <FlagRow label="High Risk Account (QHRR)" value={data.primaryBorrower?.highRiskAccount} />
+            <FlagRow label="Spotlight Account" value={data.primaryBorrower?.spotlightAccount} />
+            <FlagRow label="Covenant-Lite" value={data.primaryBorrower?.covenantLite} />
             <div className="flex items-center justify-between py-2 border-b border-slate-50">
                <span className="text-xs font-bold text-slate-600 italic">o SEA score</span>
-               <span className="text-[10px] font-black text-tdgreen uppercase bg-tdgreen/5 px-3 py-1 rounded-full">{data.primaryBorrower.seaScore || "7.2"}</span>
+               <span className="text-[10px] font-black text-tdgreen uppercase bg-tdgreen/5 px-3 py-1 rounded-full">{data.primaryBorrower?.seaScore || "7.2"}</span>
             </div>
           </div>
         </MemoSection>
@@ -227,16 +227,16 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <div className="space-y-6">
             <div className="bg-slate-50 p-6 rounded-xl border-l-4 border-slate-200">
                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Narrative + Supporting Bullets</h4>
-               <SmartNarrative text={data.analysis.overview.companyDesc} files={files} />
+               <SmartNarrative text={data.analysis?.overview?.companyDesc} files={files} />
             </div>
             <div className="grid grid-cols-2 gap-8">
               <div className="space-y-2">
                  <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-1">Reporting segments</h4>
-                 <p className="text-sm font-bold text-slate-800">{data.analysis.overview.segments || "Oil & Gas; Chemical; Midstream & Marketing"}</p>
+                 <p className="text-sm font-bold text-slate-800">{data.analysis?.overview?.segments || "Oil & Gas; Chemical; Midstream & Marketing"}</p>
               </div>
               <div className="space-y-2">
                  <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-1">Geographic Presence</h4>
-                 <p className="text-sm font-bold text-slate-800">{data.analysis.overview.geography || "N/A"}</p>
+                 <p className="text-sm font-bold text-slate-800">{data.analysis?.overview?.geography || "N/A"}</p>
               </div>
               <div className="space-y-2">
                  <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-1">End Customer / Industry Profile</h4>
@@ -249,10 +249,10 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             </div>
             <div className="bg-slate-50 p-6 rounded-xl">
                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Sponsor Overview</h4>
-               <SmartNarrative text={data.analysis.overview.sponsorOverview} files={files} />
+               <SmartNarrative text={data.analysis?.overview?.sponsorOverview} files={files} />
             </div>
             <div className="p-4 border border-dashed border-slate-200 text-center text-xs text-slate-400">
-              Existing relationship discussion: {data.counterparty.info.customerSince || "TD: New"}
+              Existing relationship discussion: {data.counterparty?.info?.customerSince || "TD: New"}
             </div>
           </div>
         </MemoSection>
@@ -261,7 +261,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         <MemoSection id="C" title="Request Overview">
           <div className="bg-slate-900 text-white p-8 rounded-sm shadow-xl">
              <h4 className="text-[10px] font-black uppercase opacity-40 mb-4 tracking-widest">Transaction and Financing Platform</h4>
-             <SmartNarrative text={data.purpose.businessPurpose} files={files} />
+             <SmartNarrative text={data.purpose?.businessPurpose} files={files} />
              <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-4 text-xs">
                 <div><strong>Sponsor Purchase:</strong> {getNested(data, 'purpose.sponsorPurchase') || "Value, consideration details"}</div>
                 <div><strong>Arrangers/Agents:</strong> {getNested(data, 'purpose.arrangers') || "Admin, Syndication, RCF Admin"}</div>
@@ -277,18 +277,18 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
               <div className="grid grid-cols-2 gap-4">
                  <div className="p-5 border-2 border-slate-100 rounded-2xl bg-white shadow-sm hover:border-tdgreen transition-colors">
                     <h4 className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Weighted Approach</h4>
-                    <p className="text-sm font-black text-slate-800">{data.analysis.valuation.approach || "Weighted Approach (DCF / trading / peer multiples); purchase multiple context"}</p>
+                    <p className="text-sm font-black text-slate-800">{data.analysis?.valuation?.approach || "Weighted Approach (DCF / trading / peer multiples); purchase multiple context"}</p>
                  </div>
                  <div className="p-5 border-2 border-slate-100 rounded-2xl bg-white shadow-sm hover:border-tdgreen transition-colors">
                     <h4 className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Pro forma reserves & production</h4>
-                    <p className="text-sm font-black text-slate-800">{data.analysis.valuation.reserves || "Pro forma reserves & production (Boe / boe/d)"}</p>
+                    <p className="text-sm font-black text-slate-800">{data.analysis?.valuation?.reserves || "Pro forma reserves & production (Boe / boe/d)"}</p>
                  </div>
               </div>
 
               <div className="p-8 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
                  <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-200 pb-2">Valuation / Peer Comparison Analysis</h4>
-                 <SmartNarrative text={data.analysis.valuation.peerComp} files={files} />
-                 {!data.analysis.valuation.peerComp && (
+                 <SmartNarrative text={data.analysis?.valuation?.peerComp} files={files} />
+                 {!data.analysis?.valuation?.peerComp && (
                    <div className="bg-white/50 p-4 border border-dashed rounded-xl">
                       <p className="text-xs text-slate-400 italic font-medium leading-relaxed">
                         Placeholder: Implications for leverage and comparable (integration/leverage risks balanced by scale). 
@@ -300,15 +300,15 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
 
               <div className="p-8 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
                  <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-200 pb-2">Sources & Uses</h4>
-                 <SmartNarrative text={data.analysis.overview.sourcesUses} files={files} />
-                 {!data.analysis.overview.sourcesUses && (
+                 <SmartNarrative text={data.analysis?.overview?.sourcesUses} files={files} />
+                 {!data.analysis?.overview?.sourcesUses && (
                    <p className="text-[10px] text-slate-400 font-bold uppercase text-center border-2 border-dashed py-10 rounded-xl">
                       [Insert Original "Sources & Uses" image/table here]
                    </p>
                  )}
               </div>
 
-              {data.purpose.sponsorPurchase && (
+              {data.purpose?.sponsorPurchase && (
                 <div className="p-6 bg-tdgreen/5 border border-tdgreen/10 rounded-2xl flex items-center gap-6">
                    <div className="w-12 h-12 bg-tdgreen rounded-xl flex items-center justify-center text-white text-xl shadow-lg">🎯</div>
                    <div>
@@ -320,14 +320,14 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
         </MemoSection>
 
-        {/* Section E */}
+        {/* Section E - ERROR FIXES APPLIED HERE */}
         <MemoSection id="E" title="Credit Request">
            <div className="space-y-6">
               <div className="grid grid-cols-2 gap-x-12 px-6">
-                 <DataRow label="Requested Aggregation" value={`$${(data.creditPosition.creditRequested || 0).toLocaleString()}`} />
-                 <DataRow label="Proposed BRR" value={data.riskAssessment.borrowerRating.proposedBrr} />
-                 <DataRow label="Proposed FRR" value={data.riskAssessment.borrowerRating.proposedFrr} />
-                 <DataRow label="Warehouse line request" value={data.creditPosition.warehouseRequest} />
+                 <DataRow label="Requested Aggregation" value={`$${(data.creditPosition?.creditRequested || 0).toLocaleString()}`} />
+                 <DataRow label="Proposed BRR" value={data.riskAssessment?.borrowerRating?.proposedBrr} />
+                 <DataRow label="Proposed FRR" value={data.riskAssessment?.borrowerRating?.proposedFrr} />
+                 <DataRow label="Warehouse line request" value={data.creditPosition?.warehouseRequest} />
               </div>
               <div className="p-4 border rounded-xl space-y-2 text-xs">
                  <p><strong>Split Commitment Example:</strong></p>
@@ -339,7 +339,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
               </div>
               <div className="p-6 bg-tdgreen/5 border border-tdgreen/10 rounded-sm">
                  <h4 className="text-[10px] font-black text-tdgreen uppercase mb-3 tracking-widest">Leveraged Lending & Repayment Analysis</h4>
-                 <SmartNarrative text={data.facilityDetails.terms.repaymentAnalysis} files={files} />
+                 <SmartNarrative text={data.facilityDetails?.terms?.repaymentAnalysis} files={files} />
               </div>
            </div>
         </MemoSection>
@@ -356,15 +356,15 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            <div className="grid grid-cols-3 gap-8">
               <div className="bg-tdgreen p-6 text-white text-center shadow-lg border-b-4 border-tdgreen-dark">
                  <p className="text-[9px] font-black uppercase opacity-60">Relationship RAROC</p>
-                 <p className="text-3xl font-black">{data.financialInfo.raroc.relationshipRaroc}%</p>
+                 <p className="text-3xl font-black">{data.financialInfo?.raroc?.relationshipRaroc || 0}%</p>
               </div>
               <div className="bg-slate-900 p-6 text-white text-center shadow-lg border-b-4 border-slate-700">
                  <p className="text-[9px] font-black uppercase opacity-60">Credit-only RAROC</p>
-                 <p className="text-3xl font-black">{data.financialInfo.raroc.creditOnlyRaroc}%</p>
+                 <p className="text-3xl font-black">{data.financialInfo?.raroc?.creditOnlyRaroc || 0}%</p>
               </div>
               <div className="bg-slate-50 p-6 text-slate-800 text-center border">
                  <p className="text-[9px] font-black uppercase text-slate-400">Underwriting/Commitment Fees</p>
-                 <p className="text-sm font-black mt-1">{data.facilityDetails.rates.underwritingFee || "As per facility agreements; refer to source"}</p>
+                 <p className="text-sm font-black mt-1">{data.facilityDetails?.rates?.underwritingFee || "As per facility agreements; refer to source"}</p>
               </div>
            </div>
         </MemoSection>
@@ -373,7 +373,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         <MemoSection id="H" title="Client Since">
            <div className="px-6 py-4 bg-slate-50 rounded-lg inline-block">
              <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Status</span>
-             <p className="text-lg font-black text-slate-900">{data.counterparty.info.customerSince || "New"}</p>
+             <p className="text-lg font-black text-slate-900">{data.counterparty?.info?.customerSince || "New"}</p>
            </div>
         </MemoSection>
 
@@ -382,15 +382,15 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            <div className="grid grid-cols-2 gap-8">
               <div className="p-4 bg-slate-50 border rounded-sm">
                  <h4 className="text-[9px] font-black uppercase text-slate-400 mb-2">Security</h4>
-                 <p className="text-sm font-bold">{data.riskAssessment.details.security || "Unsecured, pari passu"}</p>
+                 <p className="text-sm font-bold">{data.riskAssessment?.details?.security || "Unsecured, pari passu"}</p>
               </div>
               <div className="p-4 bg-slate-50 border rounded-sm">
                  <h4 className="text-[9px] font-black uppercase text-slate-400 mb-2">J.Crew/Serta/Chewy Provisions</h4>
-                 <p className="text-sm font-bold">{data.documentation.jCrewProvisions}</p>
+                 <p className="text-sm font-bold">{data.documentation?.jCrewProvisions || "N/A"}</p>
               </div>
               <div className="col-span-full p-6 border-l-4 border-tdgreen bg-slate-50">
                  <h4 className="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Covenants (Debt/Cap, Standard Negatives/Positives)</h4>
-                 <SmartNarrative text={data.documentation.financialCovenants} files={files} />
+                 <SmartNarrative text={data.documentation?.financialCovenants} files={files} />
               </div>
               <div className="p-4 bg-slate-50 border rounded-sm">
                  <h4 className="text-[9px] font-black uppercase text-slate-400 mb-2">Subordination Risk</h4>
@@ -398,7 +398,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
               </div>
               <div className="p-4 bg-slate-50 border rounded-sm">
                  <h4 className="text-[9px] font-black uppercase text-slate-400 mb-2">Pricing Overview</h4>
-                 <p className="text-sm font-bold">{data.facilityDetails.rates.margin || "Competitive IG O&G"}</p>
+                 <p className="text-sm font-bold">{data.facilityDetails?.rates?.margin || "Competitive IG O&G"}</p>
               </div>
            </div>
         </MemoSection>
@@ -408,16 +408,16 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            <div className="space-y-6">
               <div className="bg-white p-6 border rounded-sm shadow-sm">
                  <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Revenue + EBITDA YoY, Leverage Path</h4>
-                 <SmartNarrative text={data.analysis.financial.moodyAnalysis} files={files} />
+                 <SmartNarrative text={data.analysis?.financial?.moodyAnalysis} files={files} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-6 border bg-slate-50">
                    <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Liquidity Levels</h4>
-                   <p className="text-sm font-sans">{data.analysis.financial.liquidity || "N/A"}</p>
+                   <p className="text-sm font-sans">{data.analysis?.financial?.liquidity || "N/A"}</p>
                 </div>
                 <div className="p-6 border bg-slate-50">
                    <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Operating Cost & Efficiency Commentary</h4>
-                   <p className="text-sm leading-relaxed font-sans">{data.analysis.financial.operatingCosts || "N/A"}</p>
+                   <p className="text-sm leading-relaxed font-sans">{data.analysis?.financial?.operatingCosts || "N/A"}</p>
                 </div>
               </div>
               <div className="p-4 border border-slate-100 bg-slate-50 text-center text-[10px] text-slate-400 font-bold uppercase">
@@ -431,15 +431,15 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            <div className="grid grid-cols-2 gap-6">
               <div className="p-6 bg-slate-50 border rounded-sm">
                  <h4 className="text-[10px] font-black text-tdgreen uppercase mb-3 tracking-widest">Base Case</h4>
-                 <p className="text-xs leading-relaxed font-sans">{data.analysis.sensitivity.baseCase || "Production, asset sales, leverage trajectory"}</p>
+                 <p className="text-xs leading-relaxed font-sans">{data.analysis?.sensitivity?.baseCase || "Production, asset sales, leverage trajectory"}</p>
               </div>
               <div className="p-6 bg-rose-50 border border-rose-100 rounded-sm">
                  <h4 className="text-[10px] font-black text-rose-600 uppercase mb-3 tracking-widest">Downside Scenario</h4>
-                 <p className="text-xs leading-relaxed font-sans">{data.analysis.sensitivity.downsideCase || "Lower prices/volumes; leverage peak, recovery path"}</p>
+                 <p className="text-xs leading-relaxed font-sans">{data.analysis?.sensitivity?.downsideCase || "Lower prices/volumes; leverage peak, recovery path"}</p>
               </div>
               <div className="col-span-full p-4 bg-white border border-slate-200">
                 <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Key Assumptions</h4>
-                <p className="text-xs">{data.analysis.sensitivity.assumptions || "Revenue/EBITDA, WC, capex, M&A, synergies"}</p>
+                <p className="text-xs">{data.analysis?.sensitivity?.assumptions || "Revenue/EBITDA, WC, capex, M&A, synergies"}</p>
               </div>
               <div className="col-span-full p-4 border border-slate-100 bg-slate-50 text-center text-[10px] text-slate-400 font-bold uppercase">
                 [Insert Scenario/Sensitivity Image (if present)]
@@ -453,12 +453,12 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
               <div className="flex gap-8 items-center bg-slate-50 p-6 rounded-xl border">
                  <div className="text-center px-4">
                     <p className="text-[8px] font-black uppercase text-slate-400 mb-1">CLRA/BRR</p>
-                    <p className="text-2xl font-black text-slate-900">{data.riskAssessment.borrowerRating.proposedBrr || "3B (Downgraded)"}</p>
+                    <p className="text-2xl font-black text-slate-900">{data.riskAssessment?.borrowerRating?.proposedBrr || "3B (Downgraded)"}</p>
                  </div>
                  <div className="flex-1 border-l pl-8">
                     <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Public ratings watch</h4>
                     <div className="flex gap-10">
-                       {data.riskAssessment.publicRatings.map((r, i) => (
+                       {data.riskAssessment?.publicRatings?.map((r, i) => (
                           <div key={i}>
                              <p className="text-[10px] font-black">{r.agency}</p>
                              <p className="text-xs font-bold text-slate-600">{r.issuerRating || "Moody's (Watch Neg)"} ({r.outlook || "Negative Watch"})</p>
@@ -499,9 +499,9 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                  <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H16.017C14.9124 8 14.017 7.10457 14.017 6V3L21.017 3V15C21.017 18.3137 18.3307 21 15.017 21H14.017ZM3 21L3 18C3 16.8954 3.89543 16 5 16H8C8.55228 16 9 15.5523 9 15V9C9 8.44772 8.55228 8 8 8H5C3.89543 8 3 7.10457 3 6V3L10 3V15C10 18.3137 7.31371 21 4 21H3Z" /></svg>
               </div>
               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 opacity-70">Manager Endorsement</h4>
-              <p className="text-xl font-medium leading-relaxed italic relative z-10">{data.analysis.justification.mdComments || "Strategic opportunity; elevated risks mitigated by scale, assets, plan, and team. Recommendation: Approve, subject to stated conditions and monitoring."}</p>
+              <p className="text-xl font-medium leading-relaxed italic relative z-10">{data.analysis?.justification?.mdComments || "Strategic opportunity; elevated risks mitigated by scale, assets, plan, and team. Recommendation: Approve, subject to stated conditions and monitoring."}</p>
               <div className="mt-8 pt-8 border-t border-white/20">
-                 <p className="text-sm font-black uppercase tracking-widest">{data.analysis.justification.executivesSupporting || "Senior TDS Executives Supporting"}</p>
+                 <p className="text-sm font-black uppercase tracking-widest">{data.analysis?.justification?.executivesSupporting || "Senior TDS Executives Supporting"}</p>
                  <p className="text-[10px] font-bold opacity-60">Global Banking & Markets</p>
               </div>
            </div>
@@ -662,26 +662,26 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                   </tr>
                 </thead>
                 <tbody>
-                  {data.riskAssessment.publicRatings.map((rating, i) => (
+                  {(data.riskAssessment?.publicRatings || []).map((rating, i) => (
                     <tr key={i} className="border-b border-slate-100 last:border-0">
                       <td className="p-4 font-black text-slate-800 text-sm">{rating.agency}</td>
                       <td className="p-2"><input type="text" value={rating.issuerRating || ''} onChange={(e) => {
-                        const r = [...data.riskAssessment.publicRatings];
+                        const r = [...(data.riskAssessment?.publicRatings || [])];
                         r[i].issuerRating = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.seniorUnsecured || ''} onChange={(e) => {
-                        const r = [...data.riskAssessment.publicRatings];
+                        const r = [...(data.riskAssessment?.publicRatings || [])];
                         r[i].seniorUnsecured = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.outlook || ''} onChange={(e) => {
-                        const r = [...data.riskAssessment.publicRatings];
+                        const r = [...(data.riskAssessment?.publicRatings || [])];
                         r[i].outlook = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.updatedAt || ''} onChange={(e) => {
-                        const r = [...data.riskAssessment.publicRatings];
+                        const r = [...(data.riskAssessment?.publicRatings || [])];
                         r[i].updatedAt = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
@@ -868,7 +868,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                       </tr>
                    </thead>
                    <tbody>
-                      {data.riskAssessment.publicRatings.map((rating, i) => (
+                      {(data.riskAssessment?.publicRatings || []).map((rating, i) => (
                         <tr key={i} className="border-b border-slate-100 last:border-0 font-bold">
                           <td className="p-3 text-slate-900">{rating.agency}</td>
                           <td className="p-3 text-slate-700">{rating.issuerRating || "N/A"}</td>
