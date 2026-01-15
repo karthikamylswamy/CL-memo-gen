@@ -90,45 +90,46 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
 
   const content = `
     <div style="text-align:center;font-weight:bold;background:#000;color:#fff;width:100pt;margin:0 auto;padding:2pt;">CONFIDENTIAL</div>
-    <h1>Credit Memo</h1>
+    <h1>Executive Credit Memo</h1>
     
-    <h2>1. Recommendation</h2>
+    <h2>1. Strategic Recommendation</h2>
     <div class="recommendation">${recommendationHtml}</div>
     ${getSourceStr('analysis.justification.recommendation')}
 
-    <h2>2. Borrower Profile</h2>
+    <h2>2. Borrower Profile & Policy Classification</h2>
     ${renderField("Legal Name", data.primaryBorrower?.borrowerName, "primaryBorrower.borrowerName")}
     ${renderField("Group", data.primaryBorrower?.group, "primaryBorrower.group")}
-    ${renderField("Originating Office", data.primaryBorrower?.originatingOffice, "primaryBorrower.originatingOffice")}
     ${renderField("Classification", data.primaryBorrower?.accountClassification, "primaryBorrower.accountClassification")}
-    ${renderField("Leveraged", data.primaryBorrower?.leveragedLending, "primaryBorrower.leveragedLending")}
+    <div style="margin-top: 10pt;">
+      ${renderField("Leveraged Lending Policy", data.primaryBorrower?.leveragedLending, "primaryBorrower.leveragedLending")}
+      ${renderField("Regulatory Leveraged", data.primaryBorrower?.regulatoryLeveragedLoan, "primaryBorrower.regulatoryLeveragedLoan")}
+      ${renderField("High Leverage (>5.5x)", data.primaryBorrower?.highLeverageLoan, "primaryBorrower.highLeverageLoan")}
+      ${renderField("SEA Score", data.primaryBorrower?.seaScore, "primaryBorrower.seaScore")}
+    </div>
 
     <h2>3. Credit & Exposure</h2>
     ${renderField("Amount Requested", data.creditPosition?.creditRequested?.toLocaleString(), "creditPosition.creditRequested")}
-    ${renderField("Present Position", data.creditPosition?.presentPosition?.toLocaleString(), "creditPosition.presentPosition")}
-    ${renderField("Previous Auth", data.creditPosition?.previousAuthorization?.toLocaleString(), "creditPosition.previousAuthorization")}
-    ${renderField("Trading Line", data.creditPosition?.tradingLine?.toLocaleString(), "creditPosition.tradingLine")}
+    ${renderField("Hold Commitment", data.creditPosition?.holdCommitment, "creditPosition.holdCommitment")}
+    ${renderField("Warehouse Line", data.creditPosition?.warehouseRequest, "creditPosition.warehouseRequest")}
+    ${renderField("Exposure Status", data.creditPosition?.groupExposureStatus, "creditPosition.groupExposureStatus")}
 
     <h2>4. Facility Details</h2>
     ${renderField("Margin", data.facilityDetails?.rates?.margin, "facilityDetails.rates.margin")}
+    ${renderField("Underwriting Fee", data.facilityDetails?.rates?.underwritingFee, "facilityDetails.rates.underwritingFee")}
     ${renderField("Tenor", data.facilityDetails?.terms?.tenor, "facilityDetails.terms.tenor")}
-    ${renderField("Maturity", data.facilityDetails?.terms?.maturity, "facilityDetails.terms.maturity")}
-    ${renderField("Fee", data.facilityDetails?.rates?.fee, "facilityDetails.rates.fee")}
+    <div class="narrative"><strong>Repayment Analysis:</strong><br/>${data.facilityDetails?.terms?.repaymentAnalysis || "N/A"}</div>
 
     <h2>5. Legal & Covenants</h2>
     ${renderField("Agreement Type", data.documentation?.agreementType, "documentation.agreementType")}
     ${renderField("Jurisdiction", data.documentation?.jurisdiction, "documentation.jurisdiction")}
     <div class="narrative"><strong>Financial Covenants:</strong> ${getSourceStr('documentation.financialCovenants')}<br/>${data.documentation?.financialCovenants || "N/A"}</div>
-    <div class="narrative"><strong>Negative Covenants:</strong> ${getSourceStr('documentation.negativeCovenants')}<br/>${data.documentation?.negativeCovenants || "N/A"}</div>
-    <div class="narrative"><strong>Positive Covenants:</strong> ${getSourceStr('documentation.positiveCovenants')}<br/>${data.documentation?.positiveCovenants || "N/A"}</div>
-    <div class="narrative"><strong>Reporting Requirements:</strong> ${getSourceStr('documentation.reportingReqs')}<br/>${data.documentation?.reportingReqs || "N/A"}</div>
-    <div class="narrative"><strong>Funding Conditions:</strong> ${getSourceStr('documentation.fundingConditions')}<br/>${data.documentation?.fundingConditions || "N/A"}</div>
+    <div class="narrative"><strong>Lender Protections:</strong> ${getSourceStr('documentation.jCrewProvisions')}<br/>${data.documentation?.jCrewProvisions || "N/A"}</div>
 
     <h2>6. Risk & Ratings</h2>
     <h3>Borrower Rating</h3>
     ${renderField("Proposed BRR", data.riskAssessment?.borrowerRating?.proposedBrr, "riskAssessment.borrowerRating.proposedBrr")}
+    ${renderField("Proposed FRR", data.riskAssessment?.borrowerRating?.proposedFrr, "riskAssessment.borrowerRating.proposedFrr")}
     ${renderField("Current BRR", data.riskAssessment?.borrowerRating?.currentBrr, "riskAssessment.borrowerRating.currentBrr")}
-    ${renderField("Risk Analyst", data.riskAssessment?.borrowerRating?.riskAnalyst, "riskAssessment.borrowerRating.riskAnalyst")}
     
     <h3>Agency Ratings</h3>
     <table>
@@ -136,7 +137,6 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
         <tr>
           <th>Agency</th>
           <th>Issuer Rating</th>
-          <th>Senior Unsecured</th>
           <th>Outlook</th>
         </tr>
       </thead>
@@ -145,7 +145,6 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
           <tr>
             <td>${r.agency}</td>
             <td>${getVal(r.issuerRating)}</td>
-            <td>${getVal(r.seniorUnsecured)}</td>
             <td>${getVal(r.outlook)}</td>
           </tr>
         `).join('')}
@@ -155,14 +154,18 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
     <h2>7. Financials & RAROC</h2>
     ${renderField("Economic RAROC", data.financialInfo?.raroc?.economicRaroc + "%", "financialInfo.raroc.economicRaroc")}
     ${renderField("Relationship RAROC", data.financialInfo?.raroc?.relationshipRaroc + "%", "financialInfo.raroc.relationshipRaroc")}
-    ${renderField("LCC Status", data.financialInfo?.raroc?.lccStatus, "financialInfo.raroc.lccStatus")}
+    ${renderField("Economic Capital", data.financialInfo?.raroc?.economicCapital?.toLocaleString(), "financialInfo.raroc.economicCapital")}
 
-    <h2>8. Analysis</h2>
-    <div class="narrative">${getSourceStr('analysis.overview.companyDesc')}<br/>${processNarrativeForWord(data.analysis?.overview?.companyDesc || "", files)}</div>
+    <h2>8. Analysis Overview</h2>
+    <div class="narrative"><strong>Company Description:</strong><br/>${processNarrativeForWord(data.analysis?.overview?.companyDesc || "", files)}</div>
+    <div class="narrative"><strong>Sponsor Overview:</strong><br/>${processNarrativeForWord(data.analysis?.overview?.sponsorOverview || "", files)}</div>
 
-    <h2>9. Compliance</h2>
-    ${renderField("Approver", data.compliance?.signOff?.approver, "compliance.signOff.approver")}
-    ${renderField("Date", data.compliance?.signOff?.date, "compliance.signOff.date")}
+    <h2>9. Executive Recommendation & Sign-off</h2>
+    <div class="narrative"><strong>MD Comments:</strong><br/>${data.analysis?.justification?.mdComments || "N/A"}</div>
+    <div style="margin-top: 15pt;">
+      ${renderField("Approver", data.compliance?.signOff?.approver, "compliance.signOff.approver")}
+      ${renderField("Date", data.compliance?.signOff?.date, "compliance.signOff.date")}
+    </div>
   `;
 
   const source = header + content + footer;
@@ -170,7 +173,7 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `Credit_Memo_${data.primaryBorrower?.borrowerName || 'Draft'}.doc`;
+  link.download = `Executive_Credit_Memo_${data.primaryBorrower?.borrowerName || 'Draft'}.doc`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

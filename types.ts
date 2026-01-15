@@ -57,6 +57,18 @@ export interface CreditMemoData {
     covenantLite: boolean;
     weakUnderwriting: boolean;
     tdsPolicyException: boolean;
+    tdsLeveragedLoan: boolean;
+    regulatoryLeveragedLoan: boolean;
+    highLeverageLoan: boolean; // 5 rated > 5.5x
+    leveragePolicyRoom: boolean;
+    extremeLeverage: boolean; // > 6.0x
+    hrslSubLimit: boolean;
+    cmtStrategicLimit: boolean;
+    esgStrategicLimit: boolean;
+    euroInfraLimit: boolean;
+    highRiskAccount: boolean;
+    spotlightAccount: boolean;
+    seaScore: string;
     additionalComments: string;
   };
   purpose: {
@@ -68,6 +80,10 @@ export interface CreditMemoData {
       financialCovenants: boolean;
       maturityDates: boolean;
     };
+    sponsorPurchase: string;
+    arrangers: string;
+    syndicatedFacilities: string;
+    fundingMix: string;
     additionalComments: string;
   };
   creditPosition: {
@@ -77,6 +93,12 @@ export interface CreditMemoData {
     committedOverOneYear: number;
     totalExcludingTrading: number;
     tradingLine: number;
+    warehouseRequest: string;
+    holdCommitment: string;
+    subgroup: string;
+    groupExposureStatus: string;
+    underwritingCommitment: string;
+    timeToZeroHold: string;
     additionalComments: string;
   };
   groupExposure: {
@@ -94,6 +116,7 @@ export interface CreditMemoData {
       lccStatus: string;
       economicRaroc: number;
       relationshipRaroc: number;
+      creditOnlyRaroc: number;
       economicCapital: number;
     };
     additionalComments: string;
@@ -121,6 +144,7 @@ export interface CreditMemoData {
   riskAssessment: {
     borrowerRating: {
       proposedBrr: string;
+      proposedFrr: string;
       currentBrr: string;
       riskAnalyst: string;
       newRaPolicy: string;
@@ -145,8 +169,8 @@ export interface CreditMemoData {
     summaries: any[];
     tradingLines: { unhedged: number; bond: number; subtotal: number; total: number };
     options: { instruments: string; currencies: string; lcSublimit: number; competitiveAdvance: string };
-    rates: { margin: string; fee: string; allIn: string; upfront: string };
-    terms: { tenor: string; maturity: string; extension: string; termOut: string };
+    rates: { margin: string; fee: string; allIn: string; upfront: string; underwritingFee: string; commitmentFee: string; undrawnFee: string };
+    terms: { tenor: string; maturity: string; extension: string; termOut: string; repaymentAnalysis: string; achievabilityTime: string };
     repayment: { amortizing: boolean; comments: string };
     prepayment: { permitted: boolean; comments: string };
     additionalComments: string;
@@ -165,14 +189,51 @@ export interface CreditMemoData {
     eventsOfDefault: string;
     reportingReqs: string;
     fundingConditions: string;
+    jCrewProvisions: string;
+    subordinationRisk: string;
     additionalComments: string;
   };
   analysis: {
-    overview: { companyDesc: string; recentEvents: string; sourcesUses: string; financingPlan: string };
-    financial: { moodyAnalysis: string; ratioAnalysis: string; capStructure: string; liquidity: string; debtMaturity: string };
+    overview: { 
+      companyDesc: string; 
+      recentEvents: string; 
+      sourcesUses: string; 
+      financingPlan: string; 
+      segments: string; 
+      geography: string; 
+      sponsorOverview: string;
+      industryProfile: string;
+      ltmMetrics: string;
+    };
+    financial: { 
+      moodyAnalysis: string; 
+      ratioAnalysis: string; 
+      capStructure: string; 
+      liquidity: string; 
+      debtMaturity: string; 
+      operatingCosts: string;
+    };
     leverage: string;
-    sensitivity: { baseCase: string; downsideCase: string };
-    justification: { mraOutput: string; peerComp: string; fundamentals: string; fcf: string; recommendation: string };
+    valuation: { 
+      approach: string; 
+      multiples: string; 
+      reserves: string; 
+      peerComp: string; 
+    };
+    sensitivity: { 
+      baseCase: string; 
+      downsideCase: string; 
+      assumptions: string; 
+    };
+    justification: { 
+      mraOutput: string; 
+      peerComp: string; 
+      fundamentals: string; 
+      fcf: string; 
+      recommendation: string; 
+      mdComments: string; 
+      executivesSupporting: string; 
+    };
     additionalComments: string;
   };
   compliance: {
@@ -195,7 +256,8 @@ export type SectionKey =
   | 'analysis_narrative'
   | 'compliance_signoff'
   | 'source_documents'
-  | 'document_preview';
+  | 'document_preview'
+  | 'executive_credit_memo';
 
 export interface Section {
   id: SectionKey;

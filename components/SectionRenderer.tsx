@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CreditMemoData, SectionKey, SourceFile, PublicRating, FieldSource } from '../types';
 
 interface SectionRendererProps {
@@ -53,7 +53,7 @@ const MarkdownTable: React.FC<{ content: string }> = ({ content }) => {
 };
 
 const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text, files = [] }) => {
-  if (!text) return null;
+  if (!text) return <span className="text-slate-300 italic">Information pending AI extraction or manual entry.</span>;
   const parts = text.split(/(\n(?:\|.+?\|(?:\n|$))+|\!\[.+?\]\(.+?\))/g);
   return (
     <div className="space-y-4">
@@ -71,7 +71,7 @@ const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text
               <div key={i} className="my-6 space-y-2">
                 <div className="text-[9px] font-black text-tdgreen uppercase tracking-widest flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-tdgreen animate-pulse"></span>
-                  Attachment: {alt} ({filename})
+                  Exhibit: {alt}
                 </div>
                 {isImage ? (
                   <img src={file.dataUrl} alt={alt} className="max-w-full rounded-2xl border border-slate-200 shadow-lg" />
@@ -84,15 +84,12 @@ const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text
                         <p className="text-[9px] text-slate-400 font-bold uppercase">{filename}</p>
                       </div>
                     </div>
-                    <button className="text-[9px] font-black text-tdgreen uppercase tracking-[0.2em] border border-tdgreen/20 px-4 py-2 rounded-xl hover:bg-tdgreen/5 transition-all">
-                      Open PDF Exhibit
-                    </button>
                   </div>
                 )}
               </div>
             );
           }
-          return <div key={i} className="text-[10px] text-rose-500 font-bold italic border-l-2 border-rose-200 pl-3 my-2">[Image Reference Missing: {filename}]</div>;
+          return <div key={i} className="text-[10px] text-rose-500 font-bold italic border-l-2 border-rose-200 pl-3 my-2">[Missing Attachment: {filename}]</div>;
         }
         return <div key={i} className="whitespace-pre-wrap leading-relaxed">{part}</div>;
       })}
@@ -108,61 +105,11 @@ const SourceBadge: React.FC<{ source?: FieldSource }> = ({ source }) => {
     <div className="group relative inline-flex ml-2">
       <div className="px-2 py-0.5 bg-tdgreen/10 rounded-full text-tdgreen border border-tdgreen/20 flex items-center gap-1.5 transition-all hover:bg-tdgreen/20 cursor-help">
         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-        <span className="text-[8px] font-black uppercase tracking-tighter">Source: P.{source.pageNumber}</span>
-      </div>
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-        <div className="bg-slate-900 text-white text-[10px] font-black py-2 px-3 rounded-xl whitespace-nowrap shadow-2xl flex flex-col gap-1 ring-1 ring-white/10">
-          <div className="flex items-center gap-2 border-b border-white/10 pb-1 mb-1">
-            <span className="opacity-60 uppercase tracking-widest text-[8px]">Filename:</span> {source.filename}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="opacity-60 uppercase tracking-widest text-[8px]">Page Reference:</span> {source.pageNumber}
-          </div>
-        </div>
-        <div className="w-2 h-2 bg-slate-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2"></div>
+        <span className="text-[8px] font-black uppercase tracking-tighter">Ref: {source.pageNumber}</span>
       </div>
     </div>
   );
 };
-
-const Input: React.FC<{ label: string, value: any, onChange: (val: any) => void, source?: FieldSource, type?: string, placeholder?: string }> = ({ label, value, onChange, source, type = "text", placeholder = "" }) => (
-  <div className="space-y-1.5">
-    <div className="flex justify-between items-center">
-      <div className="flex items-center">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
-        <SourceBadge source={source} />
-      </div>
-    </div>
-    <div className="relative">
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value || ''}
-        onChange={(e) => onChange(type === "number" ? Number(e.target.value) : e.target.value)}
-        className={`w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 focus:ring-4 focus:ring-tdgreen/10 focus:border-tdgreen outline-none transition-all shadow-sm font-medium text-sm ${source ? 'ring-2 ring-tdgreen/5 border-tdgreen/30' : ''}`}
-      />
-    </div>
-  </div>
-);
-
-const TextArea: React.FC<{ label: string, value: string, onChange: (val: string) => void, source?: FieldSource, rows?: number, className?: string }> = ({ label, value, onChange, source, rows = 4, className = "" }) => (
-  <div className={`space-y-1.5 ${className}`}>
-    <div className="flex justify-between items-center">
-      <div className="flex items-center">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
-        <SourceBadge source={source} />
-      </div>
-    </div>
-    <div className="relative">
-      <textarea
-        rows={rows}
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-700 focus:ring-4 focus:ring-tdgreen/10 focus:border-tdgreen outline-none transition-all resize-none shadow-sm text-sm leading-relaxed ${source ? 'ring-2 ring-tdgreen/5 border-tdgreen/30' : ''}`}
-      />
-    </div>
-  </div>
-);
 
 const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files = [], onChange }) => {
   const [selectedFile, setSelectedFile] = useState<SourceFile | null>(null);
@@ -179,225 +126,405 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     onChange(updates);
   };
 
-  const wrapInput = (label: string, path: string, type = "text") => <Input label={label} value={getNested(data, path)} source={data.fieldSources?.[path]} onChange={(val) => setNested(path, val)} type={type} />;
-  const wrapTextArea = (label: string, path: string, rows = 4, className = "") => <TextArea label={label} value={getNested(data, path)} source={data.fieldSources?.[path]} onChange={(val) => setNested(path, val)} rows={rows} className={className} />;
+  const MemoSection = ({ id, title, children }: { id: string, title: string, children: React.ReactNode }) => (
+    <div className="mb-12 print:mb-8">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-sm shrink-0">{id}</div>
+        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">{title}</h2>
+        <div className="h-px bg-slate-200 flex-1"></div>
+      </div>
+      <div className="pl-14">{children}</div>
+    </div>
+  );
+
+  const FlagRow = ({ label, value }: { label: string, value: any }) => {
+    const displayValue = value === true ? 'Yes' : value === false ? 'No' : 'N/A';
+    return (
+      <div className="flex items-center justify-between py-2 border-b border-slate-50 group hover:bg-slate-50/50 transition-colors">
+        <span className="text-xs font-bold text-slate-600 italic">o {label}</span>
+        <div className="flex items-center gap-3">
+          <span className={`text-[10px] font-black uppercase tracking-widest ${value === true ? 'text-tdgreen' : 'text-slate-400'}`}>
+            {displayValue}
+          </span>
+          <div className={`w-3 h-3 rounded-full ${value === true ? 'bg-tdgreen shadow-[0_0_8px_rgba(0,138,0,0.5)]' : 'bg-slate-200'}`}></div>
+        </div>
+      </div>
+    );
+  };
+
+  const DataRow = ({ label, value, path, className = "" }: { label: string, value: any, path?: string, className?: string }) => (
+    <div className={`flex items-baseline py-2 border-b border-slate-50 ${className}`}>
+      <span className="w-48 text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}:</span>
+      <span className="flex-1 text-sm font-bold text-slate-800">{value === true ? "YES" : value === false ? "NO" : (value || "N/A")}</span>
+      {path && data.fieldSources?.[path] && <SourceBadge source={data.fieldSources[path]} />}
+    </div>
+  );
+
+  const PreviewHeader = ({ title }: { title: string }) => (
+    <div className="mb-8 border-b-2 border-slate-900 pb-2 mt-12 first:mt-0">
+      <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{title}</h2>
+    </div>
+  );
+
+  const PreviewTextArea = ({ label, value, path }: { label: string, value: string, path?: string }) => (
+    <div className="px-6 space-y-2 mb-8">
+      <div className="flex items-center gap-2">
+        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</h4>
+        {path && data.fieldSources?.[path] && <SourceBadge source={data.fieldSources[path]} />}
+      </div>
+      <div className="text-sm leading-relaxed text-slate-800 bg-slate-50/50 p-6 border-l-4 border-slate-200 whitespace-pre-wrap font-serif italic">
+        {value || "No information provided."}
+      </div>
+    </div>
+  );
+
+  if (section === 'executive_credit_memo') {
+    return (
+      <div className="max-w-5xl mx-auto py-10 px-12 bg-white shadow-2xl rounded-sm font-serif print:shadow-none print:px-0">
+        <div className="flex justify-between items-start mb-16 border-b-4 border-slate-900 pb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-tdgreen text-white p-2 font-black text-2xl">TD</div>
+              <div className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">Credit Management • Private & Confidential</div>
+            </div>
+            <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">Executive Credit Memo</h1>
+            <div className="mt-4 flex gap-4 text-xs font-black uppercase tracking-widest text-slate-500">
+               <span>Date: {new Date().toLocaleDateString()}</span>
+               <span>Status: FINAL FOR COMMITTEE</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-bold text-slate-400 uppercase">Analyst: {getNested(data, 'compliance.signOff.approver') || "Analyst Team"}</p>
+          </div>
+        </div>
+
+        {/* Section A */}
+        <MemoSection id="A" title="Leveraged Lending Policy, TDS Credit Standards, and other reporting Classification">
+          <div className="grid grid-cols-2 gap-x-16 gap-y-1">
+            <FlagRow label="TDS Corporate Banking Credit Standards Exception" value={data.primaryBorrower.creditException} />
+            <FlagRow label="Weak Underwriting" value={data.primaryBorrower.weakUnderwriting} />
+            <FlagRow label="TDS Leveraged Loan" value={data.primaryBorrower.tdsLeveragedLoan} />
+            <FlagRow label="Regulatory Leveraged Loan" value={data.primaryBorrower.regulatoryLeveragedLoan} />
+            <FlagRow label="5 Rated leveraged Loan with leverage > 5.5x" value={data.primaryBorrower.highLeverageLoan} />
+            <FlagRow label="Sufficient room within Leverage Loan dollar policy limit" value={data.primaryBorrower.leveragePolicyRoom} />
+            <FlagRow label="Leverage > 6.0x" value={data.primaryBorrower.extremeLeverage} />
+            <FlagRow label="HRSL Sub limit" value={data.primaryBorrower.hrslSubLimit} />
+            <FlagRow label="CMT Strategic Loan Sub Limit" value={data.primaryBorrower.cmtStrategicLimit} />
+            <FlagRow label="ESG Strategic Loan Sub Limit" value={data.primaryBorrower.esgStrategicLimit} />
+            <FlagRow label="Euro Infrastructure Sub Limit" value={data.primaryBorrower.euroInfraLimit} />
+            <FlagRow label="High Risk Account (QHRR)" value={data.primaryBorrower.highRiskAccount} />
+            <FlagRow label="Spotlight Account" value={data.primaryBorrower.spotlightAccount} />
+            <FlagRow label="Covenant-Lite" value={data.primaryBorrower.covenantLite} />
+            <div className="flex items-center justify-between py-2 border-b border-slate-50">
+               <span className="text-xs font-bold text-slate-600 italic">o SEA score</span>
+               <span className="text-[10px] font-black text-tdgreen uppercase bg-tdgreen/5 px-3 py-1 rounded-full">{data.primaryBorrower.seaScore || "7.2"}</span>
+            </div>
+          </div>
+        </MemoSection>
+
+        {/* Section B */}
+        <MemoSection id="B" title="Borrower Overview">
+          <div className="space-y-6">
+            <div className="bg-slate-50 p-6 rounded-xl border-l-4 border-slate-200">
+               <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Narrative + Supporting Bullets</h4>
+               <SmartNarrative text={data.analysis.overview.companyDesc} files={files} />
+            </div>
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-2">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-1">Reporting segments</h4>
+                 <p className="text-sm font-bold text-slate-800">{data.analysis.overview.segments || "Oil & Gas; Chemical; Midstream & Marketing"}</p>
+              </div>
+              <div className="space-y-2">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-1">Geographic Presence</h4>
+                 <p className="text-sm font-bold text-slate-800">{data.analysis.overview.geography || "N/A"}</p>
+              </div>
+              <div className="space-y-2">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-1">End Customer / Industry Profile</h4>
+                 <p className="text-sm font-bold text-slate-800">{getNested(data, 'analysis.overview.industryProfile') || "Placeholder: See Source Documents"}</p>
+              </div>
+              <div className="space-y-2">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-1">LTM revenue, EBITDA, margin</h4>
+                 <p className="text-sm font-bold text-slate-800">{getNested(data, 'analysis.overview.ltmMetrics') || "Placeholder: Revenue, EBITDA metrics"}</p>
+              </div>
+            </div>
+            <div className="bg-slate-50 p-6 rounded-xl">
+               <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Sponsor Overview</h4>
+               <SmartNarrative text={data.analysis.overview.sponsorOverview} files={files} />
+            </div>
+            <div className="p-4 border border-dashed border-slate-200 text-center text-xs text-slate-400">
+              Existing relationship discussion: {data.counterparty.info.customerSince || "TD: New"}
+            </div>
+          </div>
+        </MemoSection>
+
+        {/* Section C */}
+        <MemoSection id="C" title="Request Overview">
+          <div className="bg-slate-900 text-white p-8 rounded-sm shadow-xl">
+             <h4 className="text-[10px] font-black uppercase opacity-40 mb-4 tracking-widest">Transaction and Financing Platform</h4>
+             <SmartNarrative text={data.purpose.businessPurpose} files={files} />
+             <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-4 text-xs">
+                <div><strong>Sponsor Purchase:</strong> {getNested(data, 'purpose.sponsorPurchase') || "Value, consideration details"}</div>
+                <div><strong>Arrangers/Agents:</strong> {getNested(data, 'purpose.arrangers') || "Admin, Syndication, RCF Admin"}</div>
+                <div><strong>Facilities:</strong> {getNested(data, 'purpose.syndicatedFacilities') || "TD invited to participate in RCF and both TLs"}</div>
+                <div><strong>Funding Mix:</strong> {getNested(data, 'purpose.fundingMix') || "Debt, preferred, notes, asset sales"}</div>
+             </div>
+          </div>
+        </MemoSection>
+
+        {/* Section D */}
+        <MemoSection id="D" title="Valuation">
+           <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="p-4 border rounded-xl bg-slate-50/50">
+                    <h4 className="text-[9px] font-black uppercase text-slate-400">Weighted Approach</h4>
+                    <p className="text-sm font-bold">{data.analysis.valuation.approach || "DCF / Trading / Peer Multiples"}</p>
+                 </div>
+                 <div className="p-4 border rounded-xl bg-slate-50/50">
+                    <h4 className="text-[9px] font-black uppercase text-slate-400">Pro forma reserves & production</h4>
+                    <p className="text-sm font-bold">{data.analysis.valuation.reserves || "Boe / boe/d"}</p>
+                 </div>
+              </div>
+              <div className="p-6 bg-slate-50 border rounded-xl">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Valuation Analysis & Multiples</h4>
+                 <SmartNarrative text={data.analysis.valuation.peerComp} files={files} />
+              </div>
+              <div className="p-4 border border-slate-100 bg-slate-50 text-center text-[10px] text-slate-400 font-bold uppercase">
+                [Insert Original "Sources & Uses" Image and Image/Table]
+              </div>
+           </div>
+        </MemoSection>
+
+        {/* Section E */}
+        <MemoSection id="E" title="Credit Request">
+           <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-x-12 px-6">
+                 <DataRow label="Requested Aggregation" value={`$${(data.creditPosition.creditRequested || 0).toLocaleString()}`} />
+                 <DataRow label="Proposed BRR" value={data.riskAssessment.borrowerRating.proposedBrr} />
+                 <DataRow label="Proposed FRR" value={data.riskAssessment.borrowerRating.proposedFrr} />
+                 <DataRow label="Warehouse line request" value={data.creditPosition.warehouseRequest} />
+              </div>
+              <div className="p-4 border rounded-xl space-y-2 text-xs">
+                 <p><strong>Split Commitment Example:</strong></p>
+                 <ul className="list-disc pl-5">
+                   <li>$175MM to upsized $5.0Bn 5-year RCF</li>
+                   <li>$125MM to new $4.4Bn 364-day DDTL</li>
+                   <li>$125MM to new $4.4Bn 2-year DDTL</li>
+                 </ul>
+              </div>
+              <div className="p-6 bg-tdgreen/5 border border-tdgreen/10 rounded-sm">
+                 <h4 className="text-[10px] font-black text-tdgreen uppercase mb-3 tracking-widest">Leveraged Lending & Repayment Analysis</h4>
+                 <SmartNarrative text={data.facilityDetails.terms.repaymentAnalysis} files={files} />
+              </div>
+           </div>
+        </MemoSection>
+
+        {/* Section F */}
+        <MemoSection id="F" title="Discretionary Authority">
+           <div className="p-6 bg-rose-50 border border-rose-100 rounded-sm text-rose-900">
+              <p className="text-sm font-black italic">Explicit statement: Executive & Credit Committee approval is required due to transaction size, excess over guidelines, and strategic nature. Approvals are subject to successful closing and asset divestitures.</p>
+           </div>
+        </MemoSection>
+
+        {/* Section G */}
+        <MemoSection id="G" title="RAROC & Fees">
+           <div className="grid grid-cols-3 gap-8">
+              <div className="bg-tdgreen p-6 text-white text-center shadow-lg border-b-4 border-tdgreen-dark">
+                 <p className="text-[9px] font-black uppercase opacity-60">Relationship RAROC</p>
+                 <p className="text-3xl font-black">{data.financialInfo.raroc.relationshipRaroc}%</p>
+              </div>
+              <div className="bg-slate-900 p-6 text-white text-center shadow-lg border-b-4 border-slate-700">
+                 <p className="text-[9px] font-black uppercase opacity-60">Credit-only RAROC</p>
+                 <p className="text-3xl font-black">{data.financialInfo.raroc.creditOnlyRaroc}%</p>
+              </div>
+              <div className="bg-slate-50 p-6 text-slate-800 text-center border">
+                 <p className="text-[9px] font-black uppercase text-slate-400">Underwriting/Commitment Fees</p>
+                 <p className="text-sm font-black mt-1">{data.facilityDetails.rates.underwritingFee || "As per facility agreements; refer to source"}</p>
+              </div>
+           </div>
+        </MemoSection>
+
+        {/* Section H */}
+        <MemoSection id="H" title="Client Since">
+           <div className="px-6 py-4 bg-slate-50 rounded-lg inline-block">
+             <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Status</span>
+             <p className="text-lg font-black text-slate-900">{data.counterparty.info.customerSince || "New"}</p>
+           </div>
+        </MemoSection>
+
+        {/* Section I */}
+        <MemoSection id="I" title="Key Terms">
+           <div className="grid grid-cols-2 gap-8">
+              <div className="p-4 bg-slate-50 border rounded-sm">
+                 <h4 className="text-[9px] font-black uppercase text-slate-400 mb-2">Security</h4>
+                 <p className="text-sm font-bold">{data.riskAssessment.details.security || "Unsecured, pari passu"}</p>
+              </div>
+              <div className="p-4 bg-slate-50 border rounded-sm">
+                 <h4 className="text-[9px] font-black uppercase text-slate-400 mb-2">J.Crew/Serta/Chewy Provisions</h4>
+                 <p className="text-sm font-bold">{data.documentation.jCrewProvisions}</p>
+              </div>
+              <div className="col-span-full p-6 border-l-4 border-tdgreen bg-slate-50">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Covenants (Debt/Cap, Standard Negatives/Positives)</h4>
+                 <SmartNarrative text={data.documentation.financialCovenants} files={files} />
+              </div>
+              <div className="p-4 bg-slate-50 border rounded-sm">
+                 <h4 className="text-[9px] font-black uppercase text-slate-400 mb-2">Subordination Risk</h4>
+                 <p className="text-sm font-bold">{getNested(data, 'documentation.subordinationRisk') || "Medium; pari passu context"}</p>
+              </div>
+              <div className="p-4 bg-slate-50 border rounded-sm">
+                 <h4 className="text-[9px] font-black uppercase text-slate-400 mb-2">Pricing Overview</h4>
+                 <p className="text-sm font-bold">{data.facilityDetails.rates.margin || "Competitive IG O&G"}</p>
+              </div>
+           </div>
+        </MemoSection>
+
+        {/* Section J */}
+        <MemoSection id="J" title="Historical Financial Performance">
+           <div className="space-y-6">
+              <div className="bg-white p-6 border rounded-sm shadow-sm">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Revenue + EBITDA YoY, Leverage Path</h4>
+                 <SmartNarrative text={data.analysis.financial.moodyAnalysis} files={files} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-6 border bg-slate-50">
+                   <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Liquidity Levels</h4>
+                   <p className="text-sm font-sans">{data.analysis.financial.liquidity || "N/A"}</p>
+                </div>
+                <div className="p-6 border bg-slate-50">
+                   <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Operating Cost & Efficiency Commentary</h4>
+                   <p className="text-sm leading-relaxed font-sans">{data.analysis.financial.operatingCosts || "N/A"}</p>
+                </div>
+              </div>
+              <div className="p-4 border border-slate-100 bg-slate-50 text-center text-[10px] text-slate-400 font-bold uppercase">
+                [Insert Original Financial Performance Chart/Image]
+              </div>
+           </div>
+        </MemoSection>
+
+        {/* Section K */}
+        <MemoSection id="K" title="Budget & Sensitivity">
+           <div className="grid grid-cols-2 gap-6">
+              <div className="p-6 bg-slate-50 border rounded-sm">
+                 <h4 className="text-[10px] font-black text-tdgreen uppercase mb-3 tracking-widest">Base Case</h4>
+                 <p className="text-xs leading-relaxed font-sans">{data.analysis.sensitivity.baseCase || "Production, asset sales, leverage trajectory"}</p>
+              </div>
+              <div className="p-6 bg-rose-50 border border-rose-100 rounded-sm">
+                 <h4 className="text-[10px] font-black text-rose-600 uppercase mb-3 tracking-widest">Downside Scenario</h4>
+                 <p className="text-xs leading-relaxed font-sans">{data.analysis.sensitivity.downsideCase || "Lower prices/volumes; leverage peak, recovery path"}</p>
+              </div>
+              <div className="col-span-full p-4 bg-white border border-slate-200">
+                <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Key Assumptions</h4>
+                <p className="text-xs">{data.analysis.sensitivity.assumptions || "Revenue/EBITDA, WC, capex, M&A, synergies"}</p>
+              </div>
+              <div className="col-span-full p-4 border border-slate-100 bg-slate-50 text-center text-[10px] text-slate-400 font-bold uppercase">
+                [Insert Scenario/Sensitivity Image (if present)]
+              </div>
+           </div>
+        </MemoSection>
+
+        {/* Section L */}
+        <MemoSection id="L" title="BRR & Public Ratings">
+           <div className="space-y-6">
+              <div className="flex gap-8 items-center bg-slate-50 p-6 rounded-xl border">
+                 <div className="text-center px-4">
+                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">CLRA/BRR</p>
+                    <p className="text-2xl font-black text-slate-900">{data.riskAssessment.borrowerRating.proposedBrr || "3B (Downgraded)"}</p>
+                 </div>
+                 <div className="flex-1 border-l pl-8">
+                    <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Public ratings watch</h4>
+                    <div className="flex gap-10">
+                       {data.riskAssessment.publicRatings.map((r, i) => (
+                          <div key={i}>
+                             <p className="text-[10px] font-black">{r.agency}</p>
+                             <p className="text-xs font-bold text-slate-600">{r.issuerRating || "Moody's (Watch Neg)"} ({r.outlook || "Negative Watch"})</p>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              </div>
+              <div className="p-4 bg-white border italic text-slate-600">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest">Proposed rating rationale</h4>
+                 <p className="text-sm">Rationale based on scale, assets, and deleveraging plan.</p>
+              </div>
+           </div>
+        </MemoSection>
+
+        {/* Section M */}
+        <MemoSection id="M" title="Key Business/Industry Risks">
+           <ul className="list-disc pl-5 space-y-2 text-sm font-bold text-slate-700">
+             <li>Elevated leverage and repayment trajectory</li>
+             <li>Integration risk from M&A activities</li>
+             <li>Commodity price volatility and hedging effectiveness</li>
+             <li>Environmental, social, and regulatory considerations (ESG)</li>
+             <li>International exposure mix and geopolitical factors</li>
+           </ul>
+        </MemoSection>
+
+        {/* Section N */}
+        <MemoSection id="N" title="Summary of Key Risks & Mitigants">
+           <div className="p-6 bg-slate-50 border rounded-sm">
+              <p className="text-sm italic text-slate-400 text-center">Summary of key risks (Leverage, Integration, Price) and their respective mitigants (Cash Flow, Scale, Plan).</p>
+           </div>
+        </MemoSection>
+
+        {/* Section O */}
+        <MemoSection id="O" title="Managing Director Comments">
+           <div className="bg-tdgreen p-10 text-white rounded-sm shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                 <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H16.017C14.9124 8 14.017 7.10457 14.017 6V3L21.017 3V15C21.017 18.3137 18.3307 21 15.017 21H14.017ZM3 21L3 18C3 16.8954 3.89543 16 5 16H8C8.55228 16 9 15.5523 9 15V9C9 8.44772 8.55228 8 8 8H5C3.89543 8 3 7.10457 3 6V3L10 3V15C10 18.3137 7.31371 21 4 21H3Z" /></svg>
+              </div>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 opacity-70">Manager Endorsement</h4>
+              <p className="text-xl font-medium leading-relaxed italic relative z-10">{data.analysis.justification.mdComments || "Strategic opportunity; elevated risks mitigated by scale, assets, plan, and team. Recommendation: Approve, subject to stated conditions and monitoring."}</p>
+              <div className="mt-8 pt-8 border-t border-white/20">
+                 <p className="text-sm font-black uppercase tracking-widest">{data.analysis.justification.executivesSupporting || "Senior TDS Executives Supporting"}</p>
+                 <p className="text-[10px] font-bold opacity-60">Global Banking & Markets</p>
+              </div>
+           </div>
+        </MemoSection>
+        
+        <div className="text-center py-20 border-t border-slate-100 mt-20">
+           <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.5em]">End of Executive Credit Memo</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback helper for standard form sections
+  const wrapInput = (label: string, path: string, type = "text") => (
+    <div className="space-y-1.5">
+      <div className="flex items-center">
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
+        <SourceBadge source={data.fieldSources?.[path]} />
+      </div>
+      <input
+        type={type}
+        value={getNested(data, path) || ''}
+        onChange={(e) => setNested(path, type === "number" ? Number(e.target.value) : e.target.value)}
+        className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 focus:ring-4 focus:ring-tdgreen/10 focus:border-tdgreen outline-none transition-all shadow-sm font-medium text-sm"
+      />
+    </div>
+  );
+
+  const wrapTextArea = (label: string, path: string, rows = 4) => (
+    <div className="space-y-1.5 col-span-full">
+      <div className="flex items-center">
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
+        <SourceBadge source={data.fieldSources?.[path]} />
+      </div>
+      <textarea
+        rows={rows}
+        value={getNested(data, path) || ''}
+        onChange={(e) => setNested(path, e.target.value)}
+        className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-700 focus:ring-4 focus:ring-tdgreen/10 focus:border-tdgreen outline-none transition-all resize-none shadow-sm text-sm leading-relaxed"
+      />
+    </div>
+  );
+
   const wrapCheckbox = (label: string, path: string) => (
     <label className="flex items-center gap-4 p-5 rounded-xl border border-slate-100 hover:border-tdgreen/20 hover:bg-tdgreen-light/30 cursor-pointer transition-all shadow-sm bg-white group">
       <input type="checkbox" checked={!!getNested(data, path)} onChange={(e) => setNested(path, e.target.checked)} className="w-6 h-6 text-tdgreen rounded-lg border-slate-300 focus:ring-tdgreen transition-all" />
-      <div className="flex flex-col flex-1">
-        <span className="text-sm font-bold text-slate-700">{label}</span>
-        {data.fieldSources?.[path] && (
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[8px] font-black text-tdgreen uppercase tracking-widest bg-tdgreen/10 px-2 py-0.5 rounded-full border border-tdgreen/20">
-              {data.fieldSources[path].filename} • P.{data.fieldSources[path].pageNumber}
-            </span>
-          </div>
-        )}
-      </div>
+      <span className="text-sm font-bold text-slate-700">{label}</span>
     </label>
   );
-
-  const PreviewRow = ({ label, value, path }: { label: string, value: any, path?: string }) => {
-    const source = path ? data.fieldSources?.[path] : undefined;
-    return (
-      <div className="flex border-b border-slate-50 py-3 text-sm group relative">
-        <span className="w-1/3 text-slate-400 font-bold uppercase tracking-[0.1em] text-[10px]">{label}:</span>
-        <div className="w-2/3 flex flex-col">
-          <span className="font-black text-slate-800 break-words">
-            {value === true ? "YES" : value === false ? "NO" : (value || "N/A")}
-          </span>
-          {source && (
-            <span className="text-[8px] text-tdgreen font-black uppercase tracking-widest mt-1 opacity-60 group-hover:opacity-100 transition-all">
-              {source.filename} | Page {source.pageNumber}
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const PreviewTextArea = ({ label, value, path }: { label: string, value: string, path?: string }) => {
-    const source = path ? data.fieldSources?.[path] : undefined;
-    if (!value) return null;
-    return (
-      <div className="py-6">
-        <div className="flex items-center justify-between mb-3 border-l-4 border-tdgreen pl-3">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</div>
-          {source && (
-            <div className="flex items-center gap-2">
-              <span className="text-[8px] font-black text-tdgreen/60 uppercase tracking-widest">
-                Source: {source.filename} (p.{source.pageNumber})
-              </span>
-            </div>
-          )}
-        </div>
-        <div className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-inner">
-          <SmartNarrative text={value} files={files} />
-        </div>
-      </div>
-    );
-  };
-
-  const PreviewHeader = ({ title }: { title: string }) => <h2 className="text-xl font-black bg-slate-900 text-white px-6 py-3 uppercase tracking-widest mb-4 mt-8 first:mt-0">{title}</h2>;
-  const Header = ({ title }: { title: string }) => <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] border-b border-slate-100 pb-3 mt-4 mb-4 col-span-full">{title}</h3>;
-
-  const handleRatingChange = (index: number, field: keyof PublicRating, value: string) => {
-    const updatedRatings = [...data.riskAssessment.publicRatings];
-    updatedRatings[index] = { ...updatedRatings[index], [field]: value };
-    setNested('riskAssessment.publicRatings', updatedRatings);
-  };
-
-  if (section === 'source_documents') {
-    return (
-      <div className="h-full flex flex-col gap-8 animate-in fade-in duration-700">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            {files.map(file => (
-              <button key={file.id} onClick={() => setSelectedFile(file)} className={`w-full p-5 rounded-2xl border flex items-center gap-4 transition-all ${selectedFile?.id === file.id ? 'bg-tdgreen border-tdgreen text-white shadow-xl' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${selectedFile?.id === file.id ? 'bg-white/20' : 'bg-slate-100 text-slate-400'}`}>{file.type.includes('pdf') ? '📕' : '📄'}</div>
-                <div className="text-left flex-1 min-w-0"><p className="font-black truncate text-sm">{file.name}</p><p className="text-[10px] opacity-60 uppercase tracking-widest mt-0.5">{(file.size / 1024 / 1024).toFixed(2)} MB</p></div>
-              </button>
-            ))}
-          </div>
-          <div className="bg-slate-100 rounded-[2rem] border border-slate-200 overflow-hidden min-h-[500px] flex items-center justify-center">
-            {selectedFile ? <embed src={selectedFile.dataUrl} width="100%" height="100%" /> : <p className="text-slate-400 font-black uppercase tracking-widest">Select document to preview</p>}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (section === 'document_preview') {
-    return (
-      <div className="max-w-4xl mx-auto space-y-12 py-10 print:p-0 relative">
-        <div className="border-b-8 border-tdgreen pb-10 text-center">
-          <div className="inline-block px-4 py-2 bg-slate-900 text-white font-black text-xs uppercase mb-4">Confidential</div>
-          <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter">Credit Memo</h1>
-          <p className="text-slate-500 font-bold mt-2 text-sm uppercase">Institutional Banking • Syndicate Credit</p>
-        </div>
-        
-        {/* Recommendation Section */}
-        <section><PreviewHeader title="1. Recommendation" /><PreviewTextArea label="Summary" value={getNested(data, 'analysis.justification.recommendation')} path="analysis.justification.recommendation" /></section>
-        
-        {/* Borrower Section */}
-        <section>
-          <PreviewHeader title="2. Borrower" />
-          <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Name" value={getNested(data, 'primaryBorrower.borrowerName')} path="primaryBorrower.borrowerName" />
-            <PreviewRow label="Group" value={getNested(data, 'primaryBorrower.group')} path="primaryBorrower.group" />
-            <PreviewRow label="Originating Office" value={getNested(data, 'primaryBorrower.originatingOffice')} path="primaryBorrower.originatingOffice" />
-            <PreviewRow label="Classification" value={getNested(data, 'primaryBorrower.accountClassification')} path="primaryBorrower.accountClassification" />
-          </div>
-          <div className="mt-4 px-2 grid grid-cols-2 gap-4">
-             <PreviewRow label="Leveraged" value={getNested(data, 'primaryBorrower.leveragedLending')} path="primaryBorrower.leveragedLending" />
-             <PreviewRow label="Strategic" value={getNested(data, 'primaryBorrower.strategicLoan')} path="primaryBorrower.strategicLoan" />
-          </div>
-        </section>
-
-        {/* Credit & Exposure Section */}
-        <section>
-          <PreviewHeader title="3. Credit & Exposure" />
-          <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Requested" value={getNested(data, 'creditPosition.creditRequested')?.toLocaleString()} path="creditPosition.creditRequested" />
-            <PreviewRow label="Present Position" value={getNested(data, 'creditPosition.presentPosition')?.toLocaleString()} path="creditPosition.presentPosition" />
-            <PreviewRow label="Previous Auth" value={getNested(data, 'creditPosition.previousAuthorization')?.toLocaleString()} path="creditPosition.previousAuthorization" />
-            <PreviewRow label="Trading Line" value={getNested(data, 'creditPosition.tradingLine')?.toLocaleString()} path="creditPosition.tradingLine" />
-          </div>
-        </section>
-
-        {/* Facility Details Section */}
-        <section>
-          <PreviewHeader title="4. Facility Details" />
-          <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} path="facilityDetails.rates.margin" />
-            <PreviewRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} path="facilityDetails.terms.tenor" />
-            <PreviewRow label="Maturity" value={getNested(data, 'facilityDetails.terms.maturity')} path="facilityDetails.terms.maturity" />
-            <PreviewRow label="Fee" value={getNested(data, 'facilityDetails.rates.fee')} path="facilityDetails.rates.fee" />
-          </div>
-        </section>
-
-        {/* Legal & Covenants Section */}
-        <section>
-          <PreviewHeader title="5. Legal & Covenants" />
-          <div className="px-2 space-y-4">
-            <PreviewRow label="Agreement Type" value={getNested(data, 'documentation.agreementType')} path="documentation.agreementType" />
-            <PreviewRow label="Jurisdiction" value={getNested(data, 'documentation.jurisdiction')} path="documentation.jurisdiction" />
-            <PreviewTextArea label="Financial Covenants" value={getNested(data, 'documentation.financialCovenants')} path="documentation.financialCovenants" />
-            <PreviewTextArea label="Negative Covenants" value={getNested(data, 'documentation.negativeCovenants')} path="documentation.negativeCovenants" />
-            <PreviewTextArea label="Positive Covenants" value={getNested(data, 'documentation.positiveCovenants')} path="documentation.positiveCovenants" />
-            <PreviewTextArea label="Reporting Requirements" value={getNested(data, 'documentation.reportingReqs')} path="documentation.reportingReqs" />
-            <PreviewTextArea label="Funding Conditions" value={getNested(data, 'documentation.fundingConditions')} path="documentation.fundingConditions" />
-          </div>
-        </section>
-
-        {/* Risk & Ratings Section */}
-        <section>
-          <PreviewHeader title="6. Risk & Ratings" />
-          <div className="px-2 space-y-8">
-            <Header title="Borrower Rating" />
-            <div className="grid grid-cols-2 gap-x-12">
-               <PreviewRow label="Proposed BRR" value={getNested(data, 'riskAssessment.borrowerRating.proposedBrr')} path="riskAssessment.borrowerRating.proposedBrr" />
-               <PreviewRow label="Current BRR" value={getNested(data, 'riskAssessment.borrowerRating.currentBrr')} path="riskAssessment.borrowerRating.currentBrr" />
-               <PreviewRow label="Risk Analyst" value={getNested(data, 'riskAssessment.borrowerRating.riskAnalyst')} path="riskAssessment.borrowerRating.riskAnalyst" />
-               <PreviewRow label="New RA / Policy" value={getNested(data, 'riskAssessment.borrowerRating.newRaPolicy')} path="riskAssessment.borrowerRating.newRaPolicy" />
-               <PreviewRow label="RA / Policy Model" value={getNested(data, 'riskAssessment.borrowerRating.raPolicyModel')} path="riskAssessment.borrowerRating.raPolicyModel" />
-            </div>
-            <Header title="Agency Ratings" />
-            <div className="overflow-hidden rounded-xl border border-slate-200">
-               <table className="w-full text-left border-collapse text-xs">
-                 <thead className="bg-slate-50">
-                    <tr>
-                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Agency</th>
-                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Issuer Rating</th>
-                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Senior Unsecured</th>
-                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Outlook</th>
-                      <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Last Updated</th>
-                    </tr>
-                 </thead>
-                 <tbody>
-                    {data.riskAssessment.publicRatings.map((rating, i) => (
-                      <tr key={i} className="border-b border-slate-100 last:border-0 font-bold">
-                        <td className="p-3 text-slate-900">{rating.agency}</td>
-                        <td className="p-3 text-slate-700">{rating.issuerRating || "N/A"}</td>
-                        <td className="p-3 text-slate-700">{rating.seniorUnsecured || "N/A"}</td>
-                        <td className="p-3 text-slate-700">{rating.outlook || "N/A"}</td>
-                        <td className="p-3 text-slate-400 italic">{rating.updatedAt || "N/A"}</td>
-                      </tr>
-                    ))}
-                 </tbody>
-               </table>
-            </div>
-          </div>
-        </section>
-
-        {/* Financials & RAROC Section */}
-        <section>
-          <PreviewHeader title="7. Financials & RAROC" />
-          <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Economic RAROC" value={getNested(data, 'financialInfo.raroc.economicRaroc') + '%'} path="financialInfo.raroc.economicRaroc" />
-            <PreviewRow label="Relationship RAROC" value={getNested(data, 'financialInfo.raroc.relationshipRaroc') + '%'} path="financialInfo.raroc.relationshipRaroc" />
-            <PreviewRow label="LCC Status" value={getNested(data, 'financialInfo.raroc.lccStatus')} path="financialInfo.raroc.lccStatus" />
-            <PreviewRow label="Economic Capital" value={getNested(data, 'financialInfo.raroc.economicCapital')?.toLocaleString()} path="financialInfo.raroc.economicCapital" />
-          </div>
-        </section>
-
-        {/* Analysis Section */}
-        <section>
-          <PreviewHeader title="8. Analysis" />
-          <PreviewTextArea label="Company Overview" value={getNested(data, 'analysis.overview.companyDesc')} path="analysis.overview.companyDesc" />
-        </section>
-
-        {/* Compliance & Sign-off Section */}
-        <section>
-          <PreviewHeader title="9. Compliance & Sign-off" />
-          <div className="grid grid-cols-2 gap-x-12 px-2">
-            <PreviewRow label="Approver" value={getNested(data, 'compliance.signOff.approver')} path="compliance.signOff.approver" />
-            <PreviewRow label="Sign-off Date" value={getNested(data, 'compliance.signOff.date')} path="compliance.signOff.date" />
-          </div>
-        </section>
-      </div>
-    );
-  }
 
   switch (section) {
     case 'borrower_details':
@@ -407,38 +534,60 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           {wrapInput("Group", "primaryBorrower.group")}
           {wrapInput("Originating Office", "primaryBorrower.originatingOffice")}
           {wrapInput("Account Classification", "primaryBorrower.accountClassification")}
-          <Header title="Policy & Status" />
+          {wrapInput("Customer Since", "counterparty.info.customerSince")}
+          <div className="col-span-full text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] border-b pb-2 mb-4">Leveraged Lending Flags</div>
           <div className="col-span-full grid grid-cols-3 gap-5">
-            {wrapCheckbox("Quarterly Review", "primaryBorrower.quarterlyReview")}
-            {wrapCheckbox("Leveraged", "primaryBorrower.leveragedLending")}
-            {wrapCheckbox("Strategic", "primaryBorrower.strategicLoan")}
-            {wrapCheckbox("Credit Exception", "primaryBorrower.creditException")}
+            {wrapCheckbox("Leveraged Lending", "primaryBorrower.leveragedLending")}
+            {wrapCheckbox("Regulatory Leveraged", "primaryBorrower.regulatoryLeveragedLoan")}
+            {wrapCheckbox("TDS Leveraged Loan", "primaryBorrower.tdsLeveragedLoan")}
+            {wrapCheckbox("High Leverage (>5.5x)", "primaryBorrower.highLeverageLoan")}
+            {wrapCheckbox("Extreme Leverage (>6.0x)", "primaryBorrower.extremeLeverage")}
             {wrapCheckbox("Covenant Lite", "primaryBorrower.covenantLite")}
+            {wrapCheckbox("High Risk Account", "primaryBorrower.highRiskAccount")}
+            {wrapCheckbox("Spotlight Account", "primaryBorrower.spotlightAccount")}
+            {wrapCheckbox("CB Credit Standards Exception", "primaryBorrower.creditException")}
+            {wrapCheckbox("Weak Underwriting", "primaryBorrower.weakUnderwriting")}
+            {wrapCheckbox("Euro Infrastructure Sub Limit", "primaryBorrower.euroInfraLimit")}
+            {wrapCheckbox("HRSL Sub Limit", "primaryBorrower.hrslSubLimit")}
+            {wrapCheckbox("CMT Strategic Limit", "primaryBorrower.cmtStrategicLimit")}
+            {wrapCheckbox("ESG Strategic Limit", "primaryBorrower.esgStrategicLimit")}
           </div>
+          {wrapInput("SEA Score", "primaryBorrower.seaScore")}
         </div>
       );
     case 'purpose':
       return (
-        <div className="space-y-8">
+        <div className="grid grid-cols-2 gap-8">
           {wrapTextArea("Business Purpose", "purpose.businessPurpose")}
           {wrapTextArea("Adjudication Considerations", "purpose.adjudicationConsiderations")}
           {wrapInput("Annual Review Status", "purpose.annualReviewStatus")}
+          {wrapInput("Sponsor Purchase (Value, Closing)", "purpose.sponsorPurchase")}
+          {wrapInput("Arrangers / Agents", "purpose.arrangers")}
+          {wrapInput("Syndicated Facilities", "purpose.syndicatedFacilities")}
+          {wrapInput("Funding Mix", "purpose.fundingMix")}
+          <div className="col-span-full grid grid-cols-3 gap-5">
+            {wrapCheckbox("New Facilities", "purpose.reviewPurpose.newFacilities")}
+            {wrapCheckbox("Financial Covenants", "purpose.reviewPurpose.financialCovenants")}
+            {wrapCheckbox("Maturity Dates", "purpose.reviewPurpose.maturityDates")}
+          </div>
         </div>
       );
     case 'credit_exposure':
       return (
         <div className="grid grid-cols-3 gap-6">
           {wrapInput("Requested", "creditPosition.creditRequested", "number")}
-          {wrapInput("Present Position", "creditPosition.presentPosition", "number")}
-          {wrapInput("Previous Auth", "creditPosition.previousAuthorization", "number")}
-          {wrapInput("Trading Line", "creditPosition.tradingLine", "number")}
-          {wrapInput("Committed > 1yr", "creditPosition.committedOverOneYear", "number")}
+          {wrapInput("Hold Commitment", "creditPosition.holdCommitment")}
+          {wrapInput("Warehouse Line", "creditPosition.warehouseRequest")}
+          {wrapInput("Subgroup", "creditPosition.subgroup")}
+          {wrapInput("Underwriting Commitment", "creditPosition.underwritingCommitment")}
+          {wrapInput("Expected Time to Zero-Hold", "creditPosition.timeToZeroHold")}
+          {wrapTextArea("Exposure Excess Details", "creditPosition.groupExposureStatus")}
         </div>
       );
     case 'financials_raroc':
       return (
         <div className="space-y-10">
-          <div className="bg-tdgreen rounded-3xl p-10 text-white grid grid-cols-2 gap-8 shadow-xl shadow-tdgreen/10">
+          <div className="bg-tdgreen rounded-3xl p-10 text-white grid grid-cols-3 gap-8 shadow-xl shadow-tdgreen/10">
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Economic RAROC %</span>
               <input type="number" className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" value={getNested(data, 'financialInfo.raroc.economicRaroc')} onChange={e => setNested('financialInfo.raroc.economicRaroc', Number(e.target.value))} />
@@ -446,6 +595,10 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Relationship RAROC %</span>
               <input type="number" className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" value={getNested(data, 'financialInfo.raroc.relationshipRaroc')} onChange={e => setNested('financialInfo.raroc.relationshipRaroc', Number(e.target.value))} />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Credit-Only RAROC %</span>
+              <input type="number" className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" value={getNested(data, 'financialInfo.raroc.creditOnlyRaroc')} onChange={e => setNested('financialInfo.raroc.creditOnlyRaroc', Number(e.target.value))} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-8">
@@ -457,111 +610,296 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     case 'risk_ratings':
       return (
         <div className="space-y-12">
-          <Header title="Borrower Rating" />
-          <div className="grid grid-cols-2 gap-x-8 gap-y-6">
-            {wrapInput("TD BRR Proposed", "riskAssessment.borrowerRating.proposedBrr")}
-            {wrapInput("TD BRR Current", "riskAssessment.borrowerRating.currentBrr")}
-            {wrapInput("Risk Analyst", "riskAssessment.borrowerRating.riskAnalyst")}
-            {wrapInput("New RA / Policy", "riskAssessment.borrowerRating.newRaPolicy")}
-            {wrapInput("RA / Policy Model", "riskAssessment.borrowerRating.raPolicyModel")}
+          <div className="space-y-6">
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight border-b pb-2">Borrower Rating</h3>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+              {wrapInput("TD BRR Proposed", "riskAssessment.borrowerRating.proposedBrr")}
+              {wrapInput("TD FRR Proposed", "riskAssessment.borrowerRating.proposedFrr")}
+              {wrapInput("TD BRR Current", "riskAssessment.borrowerRating.currentBrr")}
+              {wrapInput("Risk Analyst", "riskAssessment.borrowerRating.riskAnalyst")}
+              {wrapInput("New RA / Policy", "riskAssessment.borrowerRating.newRaPolicy")}
+              {wrapInput("RA / Policy Model", "riskAssessment.borrowerRating.raPolicyModel")}
+            </div>
           </div>
-          <Header title="Agency Rating" />
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Agency</th>
-                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Issuer Rating</th>
-                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Senior Unsecured Notes</th>
-                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Outlook</th>
-                  <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Last Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.riskAssessment.publicRatings.map((rating, i) => (
-                  <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-all">
-                    <td className="p-4 font-black text-slate-800 text-sm">{rating.agency}</td>
-                    <td className="p-2">
-                      <input type="text" value={rating.issuerRating || ''} onChange={(e) => handleRatingChange(i, 'issuerRating', e.target.value)} placeholder="Rating" className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700" />
-                    </td>
-                    <td className="p-2">
-                      <input type="text" value={rating.seniorUnsecured || ''} onChange={(e) => handleRatingChange(i, 'seniorUnsecured', e.target.value)} placeholder="Notes" className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700" />
-                    </td>
-                    <td className="p-2">
-                      <input type="text" value={rating.outlook || ''} onChange={(e) => handleRatingChange(i, 'outlook', e.target.value)} placeholder="Outlook" className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-700" />
-                    </td>
-                    <td className="p-2">
-                      <input type="text" value={rating.updatedAt || ''} onChange={(e) => handleRatingChange(i, 'updatedAt', e.target.value)} placeholder="Date" className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none transition-all font-bold text-sm text-slate-500" />
-                    </td>
+
+          <div className="space-y-6">
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight border-b pb-2">Agency Rating</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Agency</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Issuer Rating</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Senior Unsecured Notes</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Outlook</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Last Updated</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Header title="Additional Risk Details" />
-          <div className="grid grid-cols-2 gap-8">
-            {wrapInput("TD SIC Code", "riskAssessment.details.tdSic")}
-            {wrapInput("Industry Risk", "riskAssessment.details.industryRisk")}
-            {wrapInput("Business Risk", "riskAssessment.details.businessRisk")}
-            {wrapInput("Financial Risk", "riskAssessment.details.financialRisk")}
-            {wrapInput("Security", "riskAssessment.details.security")}
-            {wrapInput("LTV %", "riskAssessment.details.ltv", "number")}
+                </thead>
+                <tbody>
+                  {data.riskAssessment.publicRatings.map((rating, i) => (
+                    <tr key={i} className="border-b border-slate-100 last:border-0">
+                      <td className="p-4 font-black text-slate-800 text-sm">{rating.agency}</td>
+                      <td className="p-2"><input type="text" value={rating.issuerRating || ''} onChange={(e) => {
+                        const r = [...data.riskAssessment.publicRatings];
+                        r[i].issuerRating = e.target.value;
+                        setNested('riskAssessment.publicRatings', r);
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      <td className="p-2"><input type="text" value={rating.seniorUnsecured || ''} onChange={(e) => {
+                        const r = [...data.riskAssessment.publicRatings];
+                        r[i].seniorUnsecured = e.target.value;
+                        setNested('riskAssessment.publicRatings', r);
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      <td className="p-2"><input type="text" value={rating.outlook || ''} onChange={(e) => {
+                        const r = [...data.riskAssessment.publicRatings];
+                        r[i].outlook = e.target.value;
+                        setNested('riskAssessment.publicRatings', r);
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      <td className="p-2"><input type="text" value={rating.updatedAt || ''} onChange={(e) => {
+                        const r = [...data.riskAssessment.publicRatings];
+                        r[i].updatedAt = e.target.value;
+                        setNested('riskAssessment.publicRatings', r);
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       );
     case 'facility_info':
       return (
         <div className="space-y-10">
-           <Header title="Pricing" />
            <div className="grid grid-cols-4 gap-6">
              {wrapInput("Margin", "facilityDetails.rates.margin")}
-             {wrapInput("Fee", "facilityDetails.rates.fee")}
-             {wrapInput("All-In", "facilityDetails.rates.allIn")}
-             {wrapInput("Upfront", "facilityDetails.rates.upfront")}
+             {wrapInput("Commitment Fee", "facilityDetails.rates.commitmentFee")}
+             {wrapInput("Underwriting Fee", "facilityDetails.rates.underwritingFee")}
+             {wrapInput("Undrawn Fee", "facilityDetails.rates.undrawnFee")}
            </div>
-           <Header title="Terms" />
            <div className="grid grid-cols-3 gap-6">
              {wrapInput("Tenor", "facilityDetails.terms.tenor")}
              {wrapInput("Maturity", "facilityDetails.terms.maturity")}
-             {wrapInput("Extension", "facilityDetails.terms.extension")}
+             {wrapTextArea("Repayment Analysis", "facilityDetails.terms.repaymentAnalysis")}
            </div>
         </div>
       );
     case 'documentation_covenants':
       return (
-        <div className="space-y-8">
-          <div className="grid grid-cols-2 gap-8">
-            {wrapInput("Agreement Type", "documentation.agreementType")}
-            {wrapInput("Jurisdiction", "documentation.jurisdiction")}
-          </div>
+        <div className="grid grid-cols-2 gap-8">
+          {wrapInput("Agreement Type", "documentation.agreementType")}
+          {wrapInput("Jurisdiction", "documentation.jurisdiction")}
+          {wrapInput("Subordination Risk", "documentation.subordinationRisk")}
           {wrapTextArea("Financial Covenants", "documentation.financialCovenants")}
+          {wrapTextArea("Protections (JCrew/Serta/Chewy)", "documentation.jCrewProvisions")}
           {wrapTextArea("Negative Covenants", "documentation.negativeCovenants")}
           {wrapTextArea("Positive Covenants", "documentation.positiveCovenants")}
           {wrapTextArea("Reporting Requirements", "documentation.reportingReqs")}
-          {wrapTextArea("Funding Conditions", "documentation.fundingConditions")}
+          {wrapTextArea("Funding conditions", "documentation.fundingConditions")}
         </div>
       );
     case 'analysis_narrative':
       return (
         <div className="space-y-12">
-          <Header title="Executive Summary & Recommendation" />
-          <div className="p-8 bg-tdgreen/5 rounded-[2rem] border-2 border-tdgreen/10">
-            {wrapTextArea("Narrative Summary", "analysis.justification.recommendation", 12)}
+          {wrapTextArea("MD Comments / Endorsement", "analysis.justification.mdComments", 6)}
+          {wrapTextArea("Executive Recommendation Summary", "analysis.justification.recommendation", 6)}
+          {wrapInput("Executives Supporting", "analysis.justification.executivesSupporting")}
+          <div className="grid grid-cols-2 gap-8">
+            {wrapTextArea("Company Overview", "analysis.overview.companyDesc", 6)}
+            {wrapTextArea("Sponsor Overview", "analysis.overview.sponsorOverview", 6)}
           </div>
-          <Header title="Overview" />
-          {wrapTextArea("Company Overview", "analysis.overview.companyDesc", 6)}
+          <div className="grid grid-cols-2 gap-8">
+            {wrapInput("Reporting Segments", "analysis.overview.segments")}
+            {wrapInput("Geographic Presence", "analysis.overview.geography")}
+            {wrapInput("End Customer Profile", "analysis.overview.industryProfile")}
+            {wrapInput("LTM Rev, EBITDA, Margin", "analysis.overview.ltmMetrics")}
+          </div>
+          <div className="grid grid-cols-2 gap-8">
+            {wrapTextArea("Valuation Approach", "analysis.valuation.approach", 4)}
+            {wrapInput("Pro Forma Reserves & Production", "analysis.valuation.reserves")}
+            {wrapTextArea("Peer Comparison / Multiples", "analysis.valuation.peerComp", 4)}
+          </div>
+          <div className="grid grid-cols-2 gap-8">
+            {wrapTextArea("Historical Financial Overview", "analysis.financial.moodyAnalysis", 6)}
+            {wrapTextArea("Liquidity Analysis", "analysis.financial.liquidity", 4)}
+            {wrapTextArea("Operating Cost Commentary", "analysis.financial.operatingCosts", 4)}
+          </div>
+          <div className="grid grid-cols-2 gap-8">
+            {wrapTextArea("Base Case Scenario", "analysis.sensitivity.baseCase", 6)}
+            {wrapTextArea("Downside Scenario", "analysis.sensitivity.downsideCase", 6)}
+            {wrapTextArea("Key Assumptions", "analysis.sensitivity.assumptions", 4)}
+          </div>
         </div>
       );
     case 'compliance_signoff':
       return (
         <div className="grid grid-cols-2 gap-8">
-           {wrapInput("Name", "compliance.signOff.name")}
-           {wrapInput("Title", "compliance.signOff.title")}
-           {wrapInput("Date", "compliance.signOff.date")}
            {wrapInput("Approver", "compliance.signOff.approver")}
-           <Header title="Legal Declarations" />
-           {wrapTextArea("Declaration of Interest", "compliance.legal.declarationInterest")}
-           {wrapTextArea("Directors", "compliance.legal.directors")}
+           {wrapInput("Date", "compliance.signOff.date")}
+        </div>
+      );
+    case 'source_documents':
+      return (
+        <div className="h-full flex flex-col gap-8 animate-in fade-in duration-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              {files.map(file => (
+                <button key={file.id} onClick={() => setSelectedFile(file)} className={`w-full p-5 rounded-2xl border flex items-center gap-4 transition-all ${selectedFile?.id === file.id ? 'bg-tdgreen border-tdgreen text-white shadow-xl' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${selectedFile?.id === file.id ? 'bg-white/20' : 'bg-slate-100 text-slate-400'}`}>{file.type.includes('pdf') ? '📕' : '📄'}</div>
+                  <div className="text-left flex-1 min-w-0"><p className="font-black truncate text-sm">{file.name}</p><p className="text-[10px] opacity-60 uppercase tracking-widest mt-0.5">{(file.size / 1024 / 1024).toFixed(2)} MB</p></div>
+                </button>
+              ))}
+            </div>
+            <div className="bg-slate-100 rounded-[2rem] border border-slate-200 overflow-hidden min-h-[500px] flex items-center justify-center">
+              {selectedFile ? <embed src={selectedFile.dataUrl} width="100%" height="100%" /> : <p className="text-slate-400 font-black uppercase tracking-widest">Select document to preview</p>}
+            </div>
+          </div>
+        </div>
+      );
+    case 'document_preview':
+      return (
+        <div className="max-w-4xl mx-auto space-y-12 py-10 print:p-0 relative font-serif">
+          <div className="border-b-8 border-tdgreen pb-10 text-center">
+            <div className="inline-block px-4 py-2 bg-slate-900 text-white font-black text-xs uppercase mb-4">Confidential Draft</div>
+            <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter">Final credit memo initial draft</h1>
+            <p className="text-slate-500 font-bold mt-2 text-sm uppercase">Consolidated Lending Profile • Institutional CIB</p>
+          </div>
+
+          <section>
+            <PreviewHeader title="1. Borrower Details" />
+            <div className="grid grid-cols-2 gap-x-12 px-6">
+              <DataRow label="Legal Name" value={getNested(data, 'primaryBorrower.borrowerName')} path="primaryBorrower.borrowerName" />
+              <DataRow label="Group" value={getNested(data, 'primaryBorrower.group')} path="primaryBorrower.group" />
+              <DataRow label="Originating Office" value={getNested(data, 'primaryBorrower.originatingOffice')} path="primaryBorrower.originatingOffice" />
+              <DataRow label="Classification" value={getNested(data, 'primaryBorrower.accountClassification')} path="primaryBorrower.accountClassification" />
+              <DataRow label="Customer Since" value={getNested(data, 'counterparty.info.customerSince')} path="counterparty.info.customerSince" />
+              <DataRow label="SEA Score" value={getNested(data, 'primaryBorrower.seaScore')} path="primaryBorrower.seaScore" />
+            </div>
+            <div className="px-6 mt-4 grid grid-cols-3 gap-2">
+               <FlagRow label="Leveraged" value={getNested(data, 'primaryBorrower.leveragedLending')} />
+               <FlagRow label="Covenant-Lite" value={getNested(data, 'primaryBorrower.covenantLite')} />
+               <FlagRow label="Regulatory LL" value={getNested(data, 'primaryBorrower.regulatoryLeveragedLoan')} />
+            </div>
+          </section>
+
+          <section>
+            <PreviewHeader title="2. Purpose & Review" />
+            <PreviewTextArea label="Strategic Business Purpose" value={getNested(data, 'purpose.businessPurpose')} path="purpose.businessPurpose" />
+            <div className="grid grid-cols-2 gap-x-12 px-6">
+              <DataRow label="Annual Review Status" value={getNested(data, 'purpose.annualReviewStatus')} path="purpose.annualReviewStatus" />
+              <DataRow label="Funding Mix" value={getNested(data, 'purpose.fundingMix')} path="purpose.fundingMix" />
+            </div>
+          </section>
+
+          <section>
+            <PreviewHeader title="3. Credit & Exposure" />
+            <div className="grid grid-cols-2 gap-x-12 px-6">
+              <DataRow label="Requested" value={`$${(getNested(data, 'creditPosition.creditRequested') || 0).toLocaleString()}`} path="creditPosition.creditRequested" />
+              <DataRow label="Hold Commitment" value={getNested(data, 'creditPosition.holdCommitment')} path="creditPosition.holdCommitment" />
+              <DataRow label="Warehouse Line" value={getNested(data, 'creditPosition.warehouseRequest')} path="creditPosition.warehouseRequest" />
+              <DataRow label="Subgroup" value={getNested(data, 'creditPosition.subgroup')} path="creditPosition.subgroup" />
+              <DataRow label="Expected Zero-Hold" value={getNested(data, 'creditPosition.timeToZeroHold')} path="creditPosition.timeToZeroHold" />
+            </div>
+          </section>
+
+          <section>
+            <PreviewHeader title="4. Financials & RAROC" />
+            <div className="grid grid-cols-3 gap-4 px-6 text-center">
+               <div className="p-4 bg-slate-50 border border-slate-200">
+                  <p className="text-[9px] font-black text-slate-400 uppercase">Economic RAROC</p>
+                  <p className="text-xl font-black">{getNested(data, 'financialInfo.raroc.economicRaroc')}%</p>
+               </div>
+               <div className="p-4 bg-slate-50 border border-slate-200">
+                  <p className="text-[9px] font-black text-slate-400 uppercase">Rel. RAROC</p>
+                  <p className="text-xl font-black">{getNested(data, 'financialInfo.raroc.relationshipRaroc')}%</p>
+               </div>
+               <div className="p-4 bg-slate-50 border border-slate-200">
+                  <p className="text-[9px] font-black text-slate-400 uppercase">Credit-Only RAROC</p>
+                  <p className="text-xl font-black">{getNested(data, 'financialInfo.raroc.creditOnlyRaroc')}%</p>
+               </div>
+            </div>
+          </section>
+
+          <section>
+            <PreviewHeader title="5. Risk & Ratings" />
+            <div className="px-6 space-y-6">
+              <div className="grid grid-cols-2 gap-x-12">
+                 <DataRow label="Proposed BRR" value={getNested(data, 'riskAssessment.borrowerRating.proposedBrr')} path="riskAssessment.borrowerRating.proposedBrr" />
+                 <DataRow label="Proposed FRR" value={getNested(data, 'riskAssessment.borrowerRating.proposedFrr')} path="riskAssessment.borrowerRating.proposedFrr" />
+                 <DataRow label="Current BRR" value={getNested(data, 'riskAssessment.borrowerRating.currentBrr')} path="riskAssessment.borrowerRating.currentBrr" />
+                 <DataRow label="Risk Analyst" value={getNested(data, 'riskAssessment.borrowerRating.riskAnalyst')} path="riskAssessment.borrowerRating.riskAnalyst" />
+              </div>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">Agency Ratings</h4>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                 <table className="w-full text-left border-collapse text-xs">
+                   <thead className="bg-slate-50">
+                      <tr>
+                        <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Agency</th>
+                        <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Issuer Rating</th>
+                        <th className="p-3 font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Outlook</th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      {data.riskAssessment.publicRatings.map((rating, i) => (
+                        <tr key={i} className="border-b border-slate-100 last:border-0 font-bold">
+                          <td className="p-3 text-slate-900">{rating.agency}</td>
+                          <td className="p-3 text-slate-700">{rating.issuerRating || "N/A"}</td>
+                          <td className="p-3 text-slate-700">{rating.outlook || "N/A"}</td>
+                        </tr>
+                      ))}
+                   </tbody>
+                 </table>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <PreviewHeader title="6. Facility Details" />
+            <div className="grid grid-cols-2 gap-x-12 px-6">
+              <DataRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} path="facilityDetails.rates.margin" />
+              <DataRow label="Commitment Fee" value={getNested(data, 'facilityDetails.rates.commitmentFee')} path="facilityDetails.rates.commitmentFee" />
+              <DataRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} path="facilityDetails.terms.tenor" />
+              <DataRow label="Maturity" value={getNested(data, 'facilityDetails.terms.maturity')} path="facilityDetails.terms.maturity" />
+            </div>
+            <PreviewTextArea label="Repayment Analysis" value={getNested(data, 'facilityDetails.terms.repaymentAnalysis')} path="facilityDetails.terms.repaymentAnalysis" />
+          </section>
+
+          <section>
+            <PreviewHeader title="7. Legal & Covenants" />
+            <div className="grid grid-cols-2 gap-x-12 px-6">
+              <DataRow label="Agreement Type" value={getNested(data, 'documentation.agreementType')} path="documentation.agreementType" />
+              <DataRow label="Jurisdiction" value={getNested(data, 'documentation.jurisdiction')} path="documentation.jurisdiction" />
+              <DataRow label="Subordination Risk" value={getNested(data, 'documentation.subordinationRisk')} path="documentation.subordinationRisk" />
+            </div>
+            <PreviewTextArea label="Financial Covenants" value={getNested(data, 'documentation.financialCovenants')} path="documentation.financialCovenants" />
+            <PreviewTextArea label="Lender Protections (J.Crew/Serta)" value={getNested(data, 'documentation.jCrewProvisions')} path="documentation.jCrewProvisions" />
+          </section>
+
+          <section>
+            <PreviewHeader title="8. Analysis & Narrative" />
+            <PreviewTextArea label="Strategic recommendation" value={getNested(data, 'analysis.justification.recommendation')} path="analysis.justification.recommendation" />
+            <div className="px-6 space-y-4">
+              <div className="p-6 bg-slate-50 border border-slate-200">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Company Overview</h4>
+                <SmartNarrative text={getNested(data, 'analysis.overview.companyDesc')} files={files} />
+              </div>
+              <div className="p-6 bg-slate-50 border border-slate-200">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Historical Financial Analysis</h4>
+                <SmartNarrative text={getNested(data, 'analysis.financial.moodyAnalysis')} files={files} />
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <PreviewHeader title="9. Sign-off & Compliance" />
+            <div className="grid grid-cols-2 gap-x-12 px-6">
+              <DataRow label="Authorized By" value={getNested(data, 'compliance.signOff.approver')} path="compliance.signOff.approver" />
+              <DataRow label="Draft Date" value={getNested(data, 'compliance.signOff.date')} path="compliance.signOff.date" />
+            </div>
+          </section>
+
+          <div className="text-center py-20 border-t border-slate-100 mt-20">
+             <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.5em]">End of consolidated draft</p>
+          </div>
         </div>
       );
     default:

@@ -198,7 +198,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="mt-10 flex justify-end gap-5 pb-24">
-              {activeSection === 'document_preview' && (
+              {(activeSection === 'document_preview' || activeSection === 'executive_credit_memo') && (
                 <button 
                   onClick={() => exportToWord(data, uploadedFiles)}
                   className="flex items-center gap-3 px-8 py-3 bg-tdgreen text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-tdgreen/20 hover:scale-105 active:scale-95 transition-all"
