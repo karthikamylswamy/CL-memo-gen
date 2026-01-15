@@ -1,5 +1,6 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
+import { InteractiveBrowserCredential } from "@azure/identity";
 import { CreditMemoData, AiProvider, SourceFile, FieldSource } from "../types";
 
 /**
@@ -94,27 +95,39 @@ async function generateAIResponse(params: {
     };
 
   } else {
-    // OpenAI Provider Selection
-    const azureToken = getAzureToken();
+    // OpenAI Provider Selection Logic
+    let azureToken = getAzureToken();
     const azureEndpoint = getAzureOpenAiEndpoint();
     const standardKey = getStandardOpenAiKey();
     const azureKey = getAzureOpenAiKey();
     
+    /**
+     * AUTHENTICATION HIERARCHY FOR OPENAI/GPT:
+     * 1. Interactive Browser Login (Prioritized for frontend if endpoint is present but no static credentials exist)
+     * 2. Azure Bearer Token from Environment
+     * 3. Standard OpenAI API Key
+     * 4. Azure API-Key from Environment
+     */
+    if (azureEndpoint && !azureToken && !standardKey && !azureKey) {
+      try {
+        // Use InteractiveBrowserCredential for client-side interactive login
+        const credential = new InteractiveBrowserCredential();
+        const tokenResponse = await credential.getToken("https://cognitiveservices.azure.com/.default");
+        azureToken = tokenResponse.token;
+      } catch (err: any) {
+        console.warn("Interactive login attempt failed or was cancelled. Falling back to key-based auth if available.", err);
+      }
+    }
+
     let url: string;
     let headers: Record<string, string> = { "Content-Type": "application/json" };
     let body: any = { model: OPENAI_MODEL_ID, temperature: 0.1 };
 
-    /**
-     * AUTHENTICATION HIERARCHY:
-     * 1. Azure OpenAI with Bearer Token (if AZURE_OPENAI_TOKEN + endpoint provided)
-     * 2. Standard OpenAI Fallback (if OPENAI_API_KEY provided)
-     * 3. Azure OpenAI with API-Key (fallback for Azure specific infrastructure)
-     */
     if (azureToken && azureEndpoint) {
       const apiVersion = getAzureOpenAiVersion();
       url = `${azureEndpoint.replace(/\/$/, '')}/openai/deployments/${OPENAI_MODEL_ID}/chat/completions?api-version=${apiVersion}`;
       headers["Authorization"] = `Bearer ${azureToken}`;
-      delete body.model; // Azure uses deployment from URL
+      delete body.model; // Azure uses deployment from URL path
     } else if (standardKey) {
       url = "https://api.openai.com/v1/chat/completions";
       headers["Authorization"] = `Bearer ${standardKey}`;
@@ -124,7 +137,7 @@ async function generateAIResponse(params: {
       headers["api-key"] = azureKey;
       delete body.model;
     } else {
-      throw new Error("OpenAI Configuration is missing. Please provide AZURE_OPENAI_TOKEN, OPENAI_API_KEY, or Azure Endpoint/Key.");
+      throw new Error("Azure OpenAI configuration missing. Please provide AZURE_OPENAI_ENDPOINT. Interactive login will be used if keys are missing.");
     }
 
     const messages: any[] = [];
@@ -159,7 +172,7 @@ async function generateAIResponse(params: {
 
     if (!response.ok) {
       const err = await response.json();
-      throw new Error(err.error?.message || "OpenAI request failed");
+      throw new Error(err.error?.message || "AI Engine request failed. Check credentials or endpoint configuration.");
     }
 
     const result = await response.json();
