@@ -271,26 +271,52 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </div>
         </MemoSection>
 
-        {/* Section D */}
+        {/* Section D - RECREATED */}
         <MemoSection id="D" title="Valuation">
            <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                 <div className="p-4 border rounded-xl bg-slate-50/50">
-                    <h4 className="text-[9px] font-black uppercase text-slate-400">Weighted Approach</h4>
-                    <p className="text-sm font-bold">{data.analysis.valuation.approach || "DCF / Trading / Peer Multiples"}</p>
+                 <div className="p-5 border-2 border-slate-100 rounded-2xl bg-white shadow-sm hover:border-tdgreen transition-colors">
+                    <h4 className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Weighted Approach</h4>
+                    <p className="text-sm font-black text-slate-800">{data.analysis.valuation.approach || "Weighted Approach (DCF / trading / peer multiples); purchase multiple context"}</p>
                  </div>
-                 <div className="p-4 border rounded-xl bg-slate-50/50">
-                    <h4 className="text-[9px] font-black uppercase text-slate-400">Pro forma reserves & production</h4>
-                    <p className="text-sm font-bold">{data.analysis.valuation.reserves || "Boe / boe/d"}</p>
+                 <div className="p-5 border-2 border-slate-100 rounded-2xl bg-white shadow-sm hover:border-tdgreen transition-colors">
+                    <h4 className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Pro forma reserves & production</h4>
+                    <p className="text-sm font-black text-slate-800">{data.analysis.valuation.reserves || "Pro forma reserves & production (Boe / boe/d)"}</p>
                  </div>
               </div>
-              <div className="p-6 bg-slate-50 border rounded-xl">
-                 <h4 className="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Valuation Analysis & Multiples</h4>
+
+              <div className="p-8 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-200 pb-2">Valuation / Peer Comparison Analysis</h4>
                  <SmartNarrative text={data.analysis.valuation.peerComp} files={files} />
+                 {!data.analysis.valuation.peerComp && (
+                   <div className="bg-white/50 p-4 border border-dashed rounded-xl">
+                      <p className="text-xs text-slate-400 italic font-medium leading-relaxed">
+                        Placeholder: Implications for leverage and comparable (integration/leverage risks balanced by scale). 
+                        Include valuation metrics relative to peer group.
+                      </p>
+                   </div>
+                 )}
               </div>
-              <div className="p-4 border border-slate-100 bg-slate-50 text-center text-[10px] text-slate-400 font-bold uppercase">
-                [Insert Original "Sources & Uses" Image and Image/Table]
+
+              <div className="p-8 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-200 pb-2">Sources & Uses</h4>
+                 <SmartNarrative text={data.analysis.overview.sourcesUses} files={files} />
+                 {!data.analysis.overview.sourcesUses && (
+                   <p className="text-[10px] text-slate-400 font-bold uppercase text-center border-2 border-dashed py-10 rounded-xl">
+                      [Insert Original "Sources & Uses" image/table here]
+                   </p>
+                 )}
               </div>
+
+              {data.purpose.sponsorPurchase && (
+                <div className="p-6 bg-tdgreen/5 border border-tdgreen/10 rounded-2xl flex items-center gap-6">
+                   <div className="w-12 h-12 bg-tdgreen rounded-xl flex items-center justify-center text-white text-xl shadow-lg">🎯</div>
+                   <div>
+                      <h4 className="text-[10px] font-black uppercase text-tdgreen tracking-widest">Sponsor Purchase Multiple</h4>
+                      <p className="text-lg font-black text-slate-800">{data.purpose.sponsorPurchase}</p>
+                   </div>
+                </div>
+              )}
            </div>
         </MemoSection>
 
@@ -717,6 +743,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             {wrapTextArea("Valuation Approach", "analysis.valuation.approach", 4)}
             {wrapInput("Pro Forma Reserves & Production", "analysis.valuation.reserves")}
             {wrapTextArea("Peer Comparison / Multiples", "analysis.valuation.peerComp", 4)}
+            {wrapTextArea("Sources & Uses Narrative", "analysis.overview.sourcesUses", 4)}
           </div>
           <div className="grid grid-cols-2 gap-8">
             {wrapTextArea("Historical Financial Overview", "analysis.financial.moodyAnalysis", 6)}
@@ -787,6 +814,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             <div className="grid grid-cols-2 gap-x-12 px-6">
               <DataRow label="Annual Review Status" value={getNested(data, 'purpose.annualReviewStatus')} path="purpose.annualReviewStatus" />
               <DataRow label="Funding Mix" value={getNested(data, 'purpose.fundingMix')} path="purpose.fundingMix" />
+              <DataRow label="Arrangers" value={getNested(data, 'purpose.arrangers')} path="purpose.arrangers" />
             </div>
           </section>
 
@@ -797,7 +825,8 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
               <DataRow label="Hold Commitment" value={getNested(data, 'creditPosition.holdCommitment')} path="creditPosition.holdCommitment" />
               <DataRow label="Warehouse Line" value={getNested(data, 'creditPosition.warehouseRequest')} path="creditPosition.warehouseRequest" />
               <DataRow label="Subgroup" value={getNested(data, 'creditPosition.subgroup')} path="creditPosition.subgroup" />
-              <DataRow label="Expected Zero-Hold" value={getNested(data, 'creditPosition.timeToZeroHold')} path="creditPosition.timeToZeroHold" />
+              <DataRow label="U/W Commitment" value={getNested(data, 'creditPosition.underwritingCommitment')} path="creditPosition.underwritingCommitment" />
+              <DataRow label="Time to Zero-Hold" value={getNested(data, 'creditPosition.timeToZeroHold')} path="creditPosition.timeToZeroHold" />
             </div>
           </section>
 
@@ -856,7 +885,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             <PreviewHeader title="6. Facility Details" />
             <div className="grid grid-cols-2 gap-x-12 px-6">
               <DataRow label="Margin" value={getNested(data, 'facilityDetails.rates.margin')} path="facilityDetails.rates.margin" />
-              <DataRow label="Commitment Fee" value={getNested(data, 'facilityDetails.rates.commitmentFee')} path="facilityDetails.rates.commitmentFee" />
+              <DataRow label="U/W Fee" value={getNested(data, 'facilityDetails.rates.underwritingFee')} path="facilityDetails.rates.underwritingFee" />
               <DataRow label="Tenor" value={getNested(data, 'facilityDetails.terms.tenor')} path="facilityDetails.terms.tenor" />
               <DataRow label="Maturity" value={getNested(data, 'facilityDetails.terms.maturity')} path="facilityDetails.terms.maturity" />
             </div>
@@ -875,30 +904,67 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </section>
 
           <section>
-            <PreviewHeader title="8. Analysis & Narrative" />
-            <PreviewTextArea label="Strategic recommendation" value={getNested(data, 'analysis.justification.recommendation')} path="analysis.justification.recommendation" />
-            <div className="px-6 space-y-4">
-              <div className="p-6 bg-slate-50 border border-slate-200">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Company Overview</h4>
+            <PreviewHeader title="8. Analysis Overview" />
+            <div className="px-6 space-y-6">
+              <div className="p-8 bg-slate-50 border border-slate-200 rounded-2xl">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Company & Industry Overview</h4>
                 <SmartNarrative text={getNested(data, 'analysis.overview.companyDesc')} files={files} />
               </div>
-              <div className="p-6 bg-slate-50 border border-slate-200">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Historical Financial Analysis</h4>
+              <div className="p-8 bg-slate-50 border border-slate-200 rounded-2xl">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Historical Financial Analysis</h4>
                 <SmartNarrative text={getNested(data, 'analysis.financial.moodyAnalysis')} files={files} />
               </div>
             </div>
           </section>
 
           <section>
-            <PreviewHeader title="9. Sign-off & Compliance" />
+            <PreviewHeader title="9. Valuation Analysis" />
+            <div className="grid grid-cols-2 gap-x-12 px-6 mb-4">
+              <DataRow label="Valuation Approach" value={getNested(data, 'analysis.valuation.approach')} path="analysis.valuation.approach" />
+              <DataRow label="Pro Forma Reserves" value={getNested(data, 'analysis.valuation.reserves')} path="analysis.valuation.reserves" />
+            </div>
+            <div className="px-6">
+               <div className="p-8 bg-slate-50 border border-slate-200 rounded-2xl">
+                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Peer Multiples & Comparable Analysis</h4>
+                 <SmartNarrative text={getNested(data, 'analysis.valuation.peerComp')} files={files} />
+               </div>
+            </div>
+          </section>
+
+          <section>
+            <PreviewHeader title="10. Budget & Sensitivity" />
+            <div className="grid grid-cols-2 gap-8 px-6">
+               <div className="p-6 border border-tdgreen/20 rounded-2xl bg-tdgreen/5">
+                  <h4 className="text-[10px] font-black text-tdgreen uppercase mb-2">Base Case</h4>
+                  <p className="text-sm italic">{getNested(data, 'analysis.sensitivity.baseCase') || "N/A"}</p>
+               </div>
+               <div className="p-6 border border-rose-200 rounded-2xl bg-rose-50">
+                  <h4 className="text-[10px] font-black text-rose-600 uppercase mb-2">Downside Scenario</h4>
+                  <p className="text-sm italic">{getNested(data, 'analysis.sensitivity.downsideCase') || "N/A"}</p>
+               </div>
+            </div>
+          </section>
+
+          <section>
+            <PreviewHeader title="11. Strategic Recommendation" />
+            <PreviewTextArea label="Analyst Recommendation Summary" value={getNested(data, 'analysis.justification.recommendation')} path="analysis.justification.recommendation" />
+            <div className="px-6">
+              <div className="bg-slate-900 text-white p-10 rounded-2xl shadow-xl italic font-medium leading-relaxed">
+                 {getNested(data, 'analysis.justification.mdComments') || "MD Comments pending..."}
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <PreviewHeader title="12. Sign-off & Compliance" />
             <div className="grid grid-cols-2 gap-x-12 px-6">
               <DataRow label="Authorized By" value={getNested(data, 'compliance.signOff.approver')} path="compliance.signOff.approver" />
-              <DataRow label="Draft Date" value={getNested(data, 'compliance.signOff.date')} path="compliance.signOff.date" />
+              <DataRow label="Final Draft Date" value={getNested(data, 'compliance.signOff.date')} path="compliance.signOff.date" />
             </div>
           </section>
 
           <div className="text-center py-20 border-t border-slate-100 mt-20">
-             <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.5em]">End of consolidated draft</p>
+             <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.5em]">End of consolidated memo draft</p>
           </div>
         </div>
       );
