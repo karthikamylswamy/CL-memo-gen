@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { CreditMemoData, SectionKey, SourceFile, PublicRating, FieldSource } from '../types';
 
@@ -126,7 +125,11 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     onChange(updates);
   };
 
-  const MemoSection = ({ id, title, children }: { id: string, title: string, children: React.ReactNode }) => (
+  /**
+   * Fix: Changed `children` to optional in `MemoSection` to resolve TypeScript errors where children 
+   * passed in JSX blocks were not correctly mapped to required props in some compilation contexts.
+   */
+  const MemoSection = ({ id, title, children }: { id: string, title: string, children?: React.ReactNode }) => (
     <div className="mb-12 print:mb-8">
       <div className="flex items-center gap-4 mb-6">
         <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-sm shrink-0">{id}</div>
@@ -271,7 +274,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </div>
         </MemoSection>
 
-        {/* Section D - RECREATED */}
+        {/* Section D - Valuation */}
         <MemoSection id="D" title="Valuation">
            <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -320,7 +323,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
         </MemoSection>
 
-        {/* Section E - ERROR FIXES APPLIED HERE */}
+        {/* Section E - Credit Request */}
         <MemoSection id="E" title="Credit Request">
            <div className="space-y-6">
               <div className="grid grid-cols-2 gap-x-12 px-6">
@@ -344,14 +347,14 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
         </MemoSection>
 
-        {/* Section F */}
+        {/* Section F - Discretionary Authority */}
         <MemoSection id="F" title="Discretionary Authority">
            <div className="p-6 bg-rose-50 border border-rose-100 rounded-sm text-rose-900">
               <p className="text-sm font-black italic">Explicit statement: Executive & Credit Committee approval is required due to transaction size, excess over guidelines, and strategic nature. Approvals are subject to successful closing and asset divestitures.</p>
            </div>
         </MemoSection>
 
-        {/* Section G */}
+        {/* Section G - RAROC & Fees */}
         <MemoSection id="G" title="RAROC & Fees">
            <div className="grid grid-cols-3 gap-8">
               <div className="bg-tdgreen p-6 text-white text-center shadow-lg border-b-4 border-tdgreen-dark">
@@ -369,7 +372,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
         </MemoSection>
 
-        {/* Section H */}
+        {/* Section H - Client Since */}
         <MemoSection id="H" title="Client Since">
            <div className="px-6 py-4 bg-slate-50 rounded-lg inline-block">
              <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Status</span>
@@ -377,7 +380,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
         </MemoSection>
 
-        {/* Section I */}
+        {/* Section I - Key Terms */}
         <MemoSection id="I" title="Key Terms">
            <div className="grid grid-cols-2 gap-8">
               <div className="p-4 bg-slate-50 border rounded-sm">
@@ -403,7 +406,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
         </MemoSection>
 
-        {/* Section J */}
+        {/* Section J - Historical Financial Performance */}
         <MemoSection id="J" title="Historical Financial Performance">
            <div className="space-y-6">
               <div className="bg-white p-6 border rounded-sm shadow-sm">
@@ -426,7 +429,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
         </MemoSection>
 
-        {/* Section K */}
+        {/* Section K - Budget & Sensitivity */}
         <MemoSection id="K" title="Budget & Sensitivity">
            <div className="grid grid-cols-2 gap-6">
               <div className="p-6 bg-slate-50 border rounded-sm">
@@ -447,7 +450,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
         </MemoSection>
 
-        {/* Section L */}
+        {/* Section L - BRR & Public Ratings */}
         <MemoSection id="L" title="BRR & Public Ratings">
            <div className="space-y-6">
               <div className="flex gap-8 items-center bg-slate-50 p-6 rounded-xl border">
@@ -474,7 +477,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
         </MemoSection>
 
-        {/* Section M */}
+        {/* Section M - Key Business/Industry Risks */}
         <MemoSection id="M" title="Key Business/Industry Risks">
            <ul className="list-disc pl-5 space-y-2 text-sm font-bold text-slate-700">
              <li>Elevated leverage and repayment trajectory</li>
@@ -485,14 +488,14 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </ul>
         </MemoSection>
 
-        {/* Section N */}
+        {/* Section N - Summary of Key Risks & Mitigants */}
         <MemoSection id="N" title="Summary of Key Risks & Mitigants">
            <div className="p-6 bg-slate-50 border rounded-sm">
               <p className="text-sm italic text-slate-400 text-center">Summary of key risks (Leverage, Integration, Price) and their respective mitigants (Cash Flow, Scale, Plan).</p>
            </div>
         </MemoSection>
 
-        {/* Section O */}
+        {/* Section O - Managing Director Comments */}
         <MemoSection id="O" title="Managing Director Comments">
            <div className="bg-tdgreen p-10 text-white rounded-sm shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10">

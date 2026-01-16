@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
-import { InteractiveBrowserCredential } from "@azure/identity";
+import { DefaultAzureCredential } from "@azure/identity";
 import { CreditMemoData, AiProvider, SourceFile, FieldSource } from "../types";
 
 /**
@@ -103,19 +103,19 @@ async function generateAIResponse(params: {
     
     /**
      * AUTHENTICATION HIERARCHY FOR OPENAI/GPT:
-     * 1. Interactive Browser Login (Prioritized for frontend if endpoint is present but no static credentials exist)
+     * 1. Default Azure Credential (Prioritized for environment-based login if endpoint is present but no static credentials exist)
      * 2. Azure Bearer Token from Environment
      * 3. Standard OpenAI API Key
      * 4. Azure API-Key from Environment
      */
     if (azureEndpoint && !azureToken && !standardKey && !azureKey) {
       try {
-        // Use InteractiveBrowserCredential for client-side interactive login
-        const credential = new InteractiveBrowserCredential();
+        // Use DefaultAzureCredential to acquire a token using environment/developer credentials
+        const credential = new DefaultAzureCredential();
         const tokenResponse = await credential.getToken("https://cognitiveservices.azure.com/.default");
         azureToken = tokenResponse.token;
       } catch (err: any) {
-        console.warn("Interactive login attempt failed or was cancelled. Falling back to key-based auth if available.", err);
+        console.warn("Azure Identity login attempt failed. Falling back to key-based auth if available.", err);
       }
     }
 
@@ -137,7 +137,7 @@ async function generateAIResponse(params: {
       headers["api-key"] = azureKey;
       delete body.model;
     } else {
-      throw new Error("Azure OpenAI configuration missing. Please provide AZURE_OPENAI_ENDPOINT. Interactive login will be used if keys are missing.");
+      throw new Error("Azure OpenAI configuration missing. Please provide AZURE_OPENAI_ENDPOINT. Azure Identity will be used if keys are missing.");
     }
 
     const messages: any[] = [];
