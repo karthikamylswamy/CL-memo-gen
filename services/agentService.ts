@@ -1,14 +1,14 @@
 
-import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { DefaultAzureCredential } from "@azure/identity";
-import { CreditMemoData, AiProvider, SourceFile, FieldSource } from "../types";
+import { CreditMemoData, AiProvider, SourceFile, FieldSource, FieldCandidate } from "../types";
 
 /**
  * EXPLICIT MODEL CONFIGURATION
- * These variables define the specific LLM models used for each provider.
  */
-const GOOGLE_MODEL_ID = 'gemini-3-pro-preview'; 
-const OPENAI_MODEL_ID = 'gpt-4o'; // This serves as the deployment name for Azure or the model name for OpenAI
+const GOOGLE_FLASH_MODEL = 'gemini-3-flash-preview';
+const GOOGLE_PRO_MODEL = 'gemini-3-pro-preview';
+const OPENAI_MODEL_ID = 'gpt-4o'; 
 
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000;
@@ -46,8 +46,22 @@ export const getStandardOpenAiKey = (): string | null => {
   return (process as any).env.OPENAI_API_KEY || null;
 };
 
+const deepMerge = (target: any, source: any) => {
+  const output = { ...target };
+  if (source && typeof source === 'object') {
+    Object.keys(source).forEach(key => {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        output[key] = deepMerge(target[key] || {}, source[key]);
+      } else {
+        output[key] = source[key];
+      }
+    });
+  }
+  return output;
+};
+
 /**
- * Internal unified response generator that uses the explicit provider models.
+ * Provider-agnostic AI request wrapper
  */
 async function generateAIResponse(params: {
   provider: AiProvider;
@@ -56,9 +70,10 @@ async function generateAIResponse(params: {
   jsonSchema?: any;
   systemInstruction?: string;
   useThinking?: boolean;
+  usePro?: boolean;
 }) {
   if (params.provider === 'google') {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const parts: any[] = [];
     if (params.files) {
@@ -80,42 +95,34 @@ async function generateAIResponse(params: {
     }
 
     if (params.useThinking) {
-      config.thinkingConfig = { thinkingBudget: 32768 };
+      config.thinkingConfig = { thinkingBudget: params.usePro ? 32768 : 24576 };
     }
 
     const response = await ai.models.generateContent({
-      model: GOOGLE_MODEL_ID,
-      contents: [{ parts }],
+      model: params.usePro ? GOOGLE_PRO_MODEL : GOOGLE_FLASH_MODEL,
+      contents: { parts },
       config
     });
 
     return {
-      text: response.text || '',
+      text: (response.text || '').trim(),
       raw: response
     };
 
   } else {
-    // OpenAI Provider Selection Logic
+    // OpenAI Logic
     let azureToken = getAzureToken();
     const azureEndpoint = getAzureOpenAiEndpoint();
     const standardKey = getStandardOpenAiKey();
     const azureKey = getAzureOpenAiKey();
     
-    /**
-     * AUTHENTICATION HIERARCHY FOR OPENAI/GPT:
-     * 1. Default Azure Credential (Prioritized for environment-based login if endpoint is present but no static credentials exist)
-     * 2. Azure Bearer Token from Environment
-     * 3. Standard OpenAI API Key
-     * 4. Azure API-Key from Environment
-     */
     if (azureEndpoint && !azureToken && !standardKey && !azureKey) {
       try {
-        // Use DefaultAzureCredential to acquire a token using environment/developer credentials
         const credential = new DefaultAzureCredential();
         const tokenResponse = await credential.getToken("https://cognitiveservices.azure.com/.default");
         azureToken = tokenResponse.token;
       } catch (err: any) {
-        console.warn("Azure Identity login attempt failed. Falling back to key-based auth if available.", err);
+        console.warn("Azure Identity auth fallback.");
       }
     }
 
@@ -127,7 +134,7 @@ async function generateAIResponse(params: {
       const apiVersion = getAzureOpenAiVersion();
       url = `${azureEndpoint.replace(/\/$/, '')}/openai/deployments/${OPENAI_MODEL_ID}/chat/completions?api-version=${apiVersion}`;
       headers["Authorization"] = `Bearer ${azureToken}`;
-      delete body.model; // Azure uses deployment from URL path
+      delete body.model; 
     } else if (standardKey) {
       url = "https://api.openai.com/v1/chat/completions";
       headers["Authorization"] = `Bearer ${standardKey}`;
@@ -137,7 +144,7 @@ async function generateAIResponse(params: {
       headers["api-key"] = azureKey;
       delete body.model;
     } else {
-      throw new Error("Azure OpenAI configuration missing. Please provide AZURE_OPENAI_ENDPOINT. Azure Identity will be used if keys are missing.");
+      throw new Error("OpenAI Provider Error: Check your API Key or Azure Configuration.");
     }
 
     const messages: any[] = [];
@@ -145,9 +152,17 @@ async function generateAIResponse(params: {
       messages.push({ role: "system", content: params.systemInstruction });
     }
 
-    const userContent: any[] = [{ type: "text", text: params.prompt }];
+    // Force JSON instruction for OpenAI json_object mode
+    let prompt = params.prompt;
+    if (params.jsonSchema) {
+      prompt += "\n\nCRITICAL: Return the response as a valid JSON object matching the requested schema. Do not include markdown formatting or explanations outside the JSON.";
+      body.response_format = { type: "json_object" };
+    }
+
+    const userContent: any[] = [{ type: "text", text: prompt }];
     if (params.files) {
       params.files.forEach(f => {
+        // OpenAI only supports images in Chat Completions directly
         if (f.mimeType.startsWith('image/')) {
           userContent.push({
             type: "image_url",
@@ -160,10 +175,6 @@ async function generateAIResponse(params: {
     messages.push({ role: "user", content: userContent });
     body.messages = messages;
 
-    if (params.jsonSchema) {
-      body.response_format = { type: "json_object" };
-    }
-
     const response = await fetch(url, {
       method: "POST",
       headers,
@@ -172,12 +183,12 @@ async function generateAIResponse(params: {
 
     if (!response.ok) {
       const err = await response.json();
-      throw new Error(err.error?.message || "AI Engine request failed. Check credentials or endpoint configuration.");
+      throw new Error(err.error?.message || "OpenAI Engine request failed.");
     }
 
     const result = await response.json();
     return {
-      text: result.choices[0].message.content,
+      text: (result.choices[0].message.content || '').trim(),
       raw: result
     };
   }
@@ -204,7 +215,7 @@ async function callWithRetry(apiCall: () => Promise<any>, retries = MAX_RETRIES)
   throw lastError;
 }
 
-export const processDocumentWithAgents = async (files: File[], provider: AiProvider): Promise<{ data: Partial<CreditMemoData>, fieldSources: Record<string, FieldSource> }> => {
+export const processDocumentWithAgents = async (files: File[], provider: AiProvider): Promise<{ data: Partial<CreditMemoData>, fieldSources: Record<string, FieldSource>, fieldCandidates: Record<string, FieldCandidate[]> }> => {
   const filePromises = files.map(file => {
     return new Promise<{data: string, mimeType: string, name: string}>((resolve) => {
       const reader = new FileReader();
@@ -218,84 +229,157 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
 
   const fileDataList = await Promise.all(filePromises);
   
-  const extractData = async () => {
+  const extractFromFile = async (file: {data: string, mimeType: string, name: string}) => {
     const extractionPrompt = `
-      Act as an Elite Syndicate Credit Analyst. Perform an EXHAUSTIVE audit and extraction on all provided documents: ${fileDataList.map(f => f.name).join(', ')}.
-      Extract PRIMARY BORROWER, CREDIT & EXPOSURE, PURPOSE, RISK & RATINGS (Proposed BRR, Moody's, S&P, Fitch), FACILITY DETAILS (Margin, Tenor, Maturity), 
-      LEGAL & COVENANTS (Negative, Positive, Financial, Reporting, Funding), and ANALYSIS OVERVIEW.
-      For EVERY field, return the 'sourceFile' and 'pageNumber'.
+      Act as an Elite Syndicate Credit Analyst. Perform an EXHAUSTIVE extraction on document: ${file.name}.
+      Identify: Borrower names, requested amounts, financial metrics (EBITDA, Revenue, RAROC), rating agency grades (Moody's, S&P, Fitch), covenants, and pricing terms.
     `;
 
     const result = await generateAIResponse({
       provider,
       prompt: extractionPrompt,
-      files: fileDataList,
+      files: [file],
+      usePro: false,
       jsonSchema: {
         type: Type.OBJECT,
         properties: {
           extractedData: { 
             type: Type.OBJECT,
             properties: {
-              primaryBorrower: { type: Type.OBJECT, properties: { borrowerName: { type: Type.STRING }, originatingOffice: { type: Type.STRING }, group: { type: Type.STRING }, accountClassification: { type: Type.STRING }, leveragedLending: { type: Type.BOOLEAN }, covenantLite: { type: Type.BOOLEAN }, strategicLoan: { type: Type.BOOLEAN } } },
-              purpose: { type: Type.OBJECT, properties: { businessPurpose: { type: Type.STRING }, adjudicationConsiderations: { type: Type.STRING } } },
-              creditPosition: { type: Type.OBJECT, properties: { presentPosition: { type: Type.NUMBER }, creditRequested: { type: Type.NUMBER }, previousAuthorization: { type: Type.NUMBER }, tradingLine: { type: Type.NUMBER }, committedOverOneYear: { type: Type.NUMBER } } },
+              primaryBorrower: { type: Type.OBJECT, properties: { borrowerName: { type: Type.STRING }, originatingOffice: { type: Type.STRING }, group: { type: Type.STRING }, accountClassification: { type: Type.STRING }, leveragedLending: { type: Type.BOOLEAN }, covenantLite: { type: Type.BOOLEAN }, strategicLoan: { type: Type.BOOLEAN }, weakUnderwriting: { type: Type.BOOLEAN }, seaScore: { type: Type.STRING } } },
+              purpose: { type: Type.OBJECT, properties: { businessPurpose: { type: Type.STRING }, adjudicationConsiderations: { type: Type.STRING }, sponsorPurchase: { type: Type.STRING }, arrangers: { type: Type.STRING }, syndicatedFacilities: { type: Type.STRING }, fundingMix: { type: Type.STRING } } },
+              creditPosition: { type: Type.OBJECT, properties: { presentPosition: { type: Type.NUMBER }, creditRequested: { type: Type.NUMBER }, previousAuthorization: { type: Type.NUMBER }, tradingLine: { type: Type.NUMBER }, committedOverOneYear: { type: Type.NUMBER }, warehouseRequest: { type: Type.STRING }, holdCommitment: { type: Type.STRING }, subgroup: { type: Type.STRING }, groupExposureStatus: { type: Type.STRING } } },
               riskAssessment: {
                 type: Type.OBJECT,
                 properties: {
-                  borrowerRating: { type: Type.OBJECT, properties: { proposedBrr: { type: Type.STRING }, currentBrr: { type: Type.STRING }, riskAnalyst: { type: Type.STRING }, raPolicyModel: { type: Type.STRING } } },
+                  borrowerRating: { type: Type.OBJECT, properties: { proposedBrr: { type: Type.STRING }, proposedFrr: { type: Type.STRING }, currentBrr: { type: Type.STRING }, riskAnalyst: { type: Type.STRING }, raPolicyModel: { type: Type.STRING } } },
                   publicRatings: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { agency: { type: Type.STRING }, issuerRating: { type: Type.STRING }, seniorUnsecured: { type: Type.STRING }, outlook: { type: Type.STRING }, updatedAt: { type: Type.STRING } } } },
-                  details: { type: Type.OBJECT, properties: { tdSic: { type: Type.STRING }, industryRisk: { type: Type.STRING }, ltv: { type: Type.NUMBER }, security: { type: Type.STRING } } }
+                  details: { type: Type.OBJECT, properties: { tdSic: { type: Type.STRING }, industryRisk: { type: Type.STRING }, ltv: { type: Type.NUMBER }, security: { type: Type.STRING }, businessRisk: { type: Type.STRING }, financialRisk: { type: Type.STRING }, envRisk: { type: Type.STRING }, countryRisk: { type: Type.STRING }, governanceRisk: { type: Type.STRING } } }
                 }
               },
-              facilityDetails: { type: Type.OBJECT, properties: { rates: { type: Type.OBJECT, properties: { margin: { type: Type.STRING }, fee: { type: Type.STRING }, upfront: { type: Type.STRING } } }, terms: { type: Type.OBJECT, properties: { tenor: { type: Type.STRING }, maturity: { type: Type.STRING } } } } },
-              documentation: { type: Type.OBJECT, properties: { agreementType: { type: Type.STRING }, jurisdiction: { type: Type.STRING }, financialCovenants: { type: Type.STRING }, negativeCovenants: { type: Type.STRING }, positiveCovenants: { type: Type.STRING }, reportingReqs: { type: Type.STRING }, fundingConditions: { type: Type.STRING } } },
-              analysis: { type: Type.OBJECT, properties: { overview: { type: Type.OBJECT, properties: { companyDesc: { type: Type.STRING }, recentEvents: { type: Type.STRING } } } } }
-            },
-            required: ["primaryBorrower"]
+              facilityDetails: { type: Type.OBJECT, properties: { rates: { type: Type.OBJECT, properties: { margin: { type: Type.STRING }, fee: { type: Type.STRING }, upfront: { type: Type.STRING }, underwritingFee: { type: Type.STRING }, commitmentFee: { type: Type.STRING }, undrawnFee: { type: Type.STRING } } }, terms: { type: Type.OBJECT, properties: { tenor: { type: Type.STRING }, maturity: { type: Type.STRING }, extension: { type: Type.STRING }, termOut: { type: Type.STRING }, repaymentAnalysis: { type: Type.STRING } } } } },
+              documentation: { type: Type.OBJECT, properties: { agreementType: { type: Type.STRING }, jurisdiction: { type: Type.STRING }, financialCovenants: { type: Type.STRING }, negativeCovenants: { type: Type.STRING }, positiveCovenants: { type: Type.STRING }, reportingReqs: { type: Type.STRING }, fundingConditions: { type: Type.STRING }, jCrewProvisions: { type: Type.STRING }, subordinationRisk: { type: Type.STRING } } },
+              analysis: { 
+                type: Type.OBJECT, 
+                properties: { 
+                  overview: { 
+                    type: Type.OBJECT, 
+                    properties: { 
+                      companyDesc: { type: Type.STRING }, 
+                      recentEvents: { type: Type.STRING }, 
+                      segments: { type: Type.STRING }, 
+                      geography: { type: Type.STRING }, 
+                      sponsorOverview: { type: Type.STRING }, 
+                      industryProfile: { type: Type.STRING }, 
+                      ltmMetrics: { type: Type.STRING }, 
+                      sourcesUses: { type: Type.STRING } 
+                    }
+                  },
+                  financial: { 
+                    type: Type.OBJECT, 
+                    properties: { 
+                      moodyAnalysis: { type: Type.STRING }, 
+                      liquidity: { type: Type.STRING }, 
+                      operatingCosts: { type: Type.STRING } 
+                    } 
+                  } 
+                } 
+              }
+            }
           },
-          fieldSources: {
+          allFindings: {
             type: Type.ARRAY,
-            items: { 
-              type: Type.OBJECT, 
-              properties: { fieldPath: { type: Type.STRING }, sourceFile: { type: Type.STRING }, pageNumber: { type: Type.STRING } },
-              required: ["fieldPath", "sourceFile"]
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                fieldPath: { type: Type.STRING },
+                value: { type: Type.STRING },
+                sourceFile: { type: Type.STRING },
+                pageNumber: { type: Type.STRING },
+                confidence: { type: Type.NUMBER }
+              },
+              required: ["fieldPath", "value", "sourceFile"]
             }
           }
         },
-        required: ["extractedData", "fieldSources"]
+        required: ["extractedData", "allFindings"]
       }
     });
 
-    return JSON.parse(result.text);
+    try {
+      return JSON.parse(result.text);
+    } catch (e) {
+      console.error("JSON Parsing Error:", result.text);
+      throw new Error("The AI response was not valid JSON. This can happen with very large documents.");
+    }
   };
 
-  const extractionResult = await callWithRetry(extractData);
-  const extracted = extractionResult.extractedData || {};
-  const rawFieldSources = extractionResult.fieldSources || [];
+  const parallelResults = await Promise.all(fileDataList.map(file => callWithRetry(() => extractFromFile(file))));
+  
+  const allFindings: any[] = [];
+  let combinedExtracted: any = {};
+
+  parallelResults.forEach(res => {
+    if (res.allFindings) allFindings.push(...res.allFindings);
+    if (res.extractedData) combinedExtracted = deepMerge(combinedExtracted, res.extractedData);
+  });
   
   const fieldSources: Record<string, FieldSource> = {};
-  rawFieldSources.forEach((item: any) => {
-    if (item.fieldPath && item.sourceFile) {
-      fieldSources[item.fieldPath] = {
-        filename: item.sourceFile,
-        pageNumber: item.pageNumber || "N/A"
+  const fieldCandidates: Record<string, FieldCandidate[]> = {};
+
+  allFindings.forEach((item: any) => {
+    if (item.fieldPath) {
+      const candidate: FieldCandidate = {
+        value: item.value,
+        sourceFile: item.sourceFile,
+        pageNumber: item.pageNumber || "N/A",
+        confidence: item.confidence
       };
+
+      if (!fieldCandidates[item.fieldPath]) {
+        fieldCandidates[item.fieldPath] = [];
+      }
+      
+      const exists = fieldCandidates[item.fieldPath].some(c => 
+        String(c.value) === String(candidate.value)
+      );
+      
+      if (!exists) {
+        fieldCandidates[item.fieldPath].push(candidate);
+      }
     }
+  });
+
+  Object.entries(fieldCandidates).forEach(([path, candidates]) => {
+    const isInternalConflict = candidates.length > 1;
+    fieldSources[path] = {
+      filename: candidates[0].sourceFile,
+      pageNumber: candidates[0].pageNumber,
+      selectedIndices: [0],
+      resolved: !isInternalConflict
+    };
+    
+    const keys = path.split('.');
+    let current = combinedExtracted;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!current[keys[i]]) current[keys[i]] = {};
+      current = current[keys[i]];
+    }
+    current[keys[keys.length - 1]] = candidates[0].value;
   });
 
   const synthesizeNarrative = async () => {
     const synthesisPrompt = `
-      Perform deep analysis for Deal Team. Context: ${JSON.stringify(extracted)}.
-      1. Synthesize "Executive Recommendation".
-      2. Include Markdown Tables for "Covenants" and "Pricing".
-      3. Use ![Description](FILENAME) for exhibits.
+      You are a Senior Managing Director in Syndicate Loans. Review the multi-document extraction results: ${JSON.stringify(combinedExtracted)}.
+      Write a sharp, strategic executive summary for the credit memo. Focus on: Deal context, credit strength/weakness, and a clear recommendation.
     `;
 
     const result = await generateAIResponse({
       provider,
       prompt: synthesisPrompt,
       files: fileDataList,
-      useThinking: true
+      useThinking: true,
+      usePro: true 
     });
     return result.text;
   };
@@ -303,17 +387,17 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
   const narrative = await callWithRetry(synthesizeNarrative);
 
   const finalData = {
-    ...extracted,
+    ...combinedExtracted,
     analysis: {
-      ...extracted.analysis,
+      ...combinedExtracted.analysis,
       justification: {
-        ...extracted.analysis?.justification,
+        ...combinedExtracted.analysis?.justification,
         recommendation: narrative
       }
     }
   };
 
-  return { data: finalData, fieldSources };
+  return { data: finalData, fieldSources, fieldCandidates };
 };
 
 export const chatWithAiAgent = async (params: {
@@ -323,7 +407,7 @@ export const chatWithAiAgent = async (params: {
   memoContext: CreditMemoData;
   files: SourceFile[];
 }) => {
-  const systemInstruction = `Senior Credit Analyst Persona. Context: ${JSON.stringify(params.memoContext)}. You have access to: ${params.files.map(f => f.name).join(', ')}.`;
+  const systemInstruction = `You are a Senior Credit Analysis Agent. Context: ${JSON.stringify(params.memoContext)}. Help the analyst refine the memo by answering questions based on deal documents.`;
   
   const chatFiles = params.files.slice(0, 3).map(f => ({
     data: f.dataUrl.split(',')[1],
@@ -335,7 +419,8 @@ export const chatWithAiAgent = async (params: {
     provider: params.provider,
     prompt: params.message,
     files: chatFiles,
-    systemInstruction
+    systemInstruction,
+    usePro: true
   });
 
   return result.text;

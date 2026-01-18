@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { CreditMemoData, SectionKey, SourceFile, AiProvider } from './types';
+import { CreditMemoData, SectionKey, SourceFile, AiProvider, FieldCandidate, FieldSource } from './types';
 import { SECTIONS, getInitialData } from './constants';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -26,6 +26,14 @@ const deepMerge = (target: any, source: any) => {
   return output;
 };
 
+const isFilled = (obj: any, path: string) => {
+  const val = path.split('.').reduce((o, i) => (o && typeof o === 'object' ? o[i] : undefined), obj);
+  if (val === undefined || val === null || val === '') return false;
+  if (typeof val === 'number' && val === 0) return false;
+  if (Array.isArray(val) && val.length === 0) return false;
+  return true;
+};
+
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<SectionKey>('borrower_details');
   const [data, setData] = useState<CreditMemoData>(getInitialData());
@@ -37,7 +45,6 @@ const App: React.FC = () => {
   const [previewFile, setPreviewFile] = useState<SourceFile | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<AiProvider>('google');
 
-  // Load data on start
   useEffect(() => {
     const init = async () => {
       try {
@@ -52,10 +59,8 @@ const App: React.FC = () => {
     init();
   }, []);
 
-  // Save data on change
   useEffect(() => {
     const freshInitial = getInitialData();
-    // Only save if data is actually different from initial state
     if (JSON.stringify(data) !== JSON.stringify(freshInitial)) {
       db.saveMemo(data).then(() => setLastSaved(new Date()));
     }
@@ -64,6 +69,56 @@ const App: React.FC = () => {
   const handleUpdateData = useCallback((updates: Partial<CreditMemoData>) => {
     setData(prev => ({ ...prev, ...updates }));
   }, []);
+
+  const handleApplyCandidate = useCallback((fieldPath: string, candidate: FieldCandidate, index: number) => {
+    const keys = fieldPath.split('.');
+    const updates = { ...data };
+    const candidates = data.fieldCandidates?.[fieldPath] || [];
+    
+    const sourceInfo = data.fieldSources?.[fieldPath] || { filename: candidate.sourceFile, pageNumber: candidate.pageNumber };
+    let selectedIndices = sourceInfo.selectedIndices || [];
+    
+    if (selectedIndices.includes(index)) {
+      selectedIndices = selectedIndices.filter(i => i !== index);
+    } else {
+      selectedIndices = [...selectedIndices, index].sort((a, b) => a - b);
+    }
+    
+    const selectedCandidates = candidates.filter((_, i) => selectedIndices.includes(i));
+    const newValue = selectedCandidates.map(c => String(c.value)).join('\n\n');
+    
+    let current: any = updates;
+    for (let i = 0; i < keys.length - 1; i++) {
+      current[keys[i]] = { ...current[keys[i]] };
+      current = current[keys[i]];
+    }
+    current[keys[keys.length - 1]] = newValue;
+    
+    const fieldSources = { ...data.fieldSources };
+    fieldSources[fieldPath] = {
+      ...sourceInfo,
+      filename: selectedCandidates.length > 0 ? selectedCandidates[0].sourceFile : candidate.sourceFile,
+      pageNumber: selectedCandidates.length > 0 ? selectedCandidates[0].pageNumber : candidate.pageNumber,
+      selectedIndices: selectedIndices,
+      resolved: false 
+    };
+    
+    updates.fieldSources = fieldSources;
+    setData(updates);
+  }, [data]);
+
+  const handleResolveConflict = useCallback((fieldPath: string) => {
+    const updates = { ...data };
+    const fieldSources = { ...data.fieldSources };
+    if (fieldSources[fieldPath]) {
+      fieldSources[fieldPath] = {
+        ...fieldSources[fieldPath],
+        resolved: true
+      };
+      updates.fieldSources = fieldSources;
+      setData(updates);
+    }
+  }, [data]);
 
   const handleFileUpload = async (files: File[]) => {
     setIsProcessing(true);
@@ -91,19 +146,78 @@ const App: React.FC = () => {
     setUploadedFiles(prev => [...prev, ...loadedSourceFiles]);
 
     try {
-      const { data: extractedData, fieldSources } = await processDocumentWithAgents(files, selectedProvider);
+      const { data: extractedBatch, fieldSources: batchSources, fieldCandidates: batchCandidates } = await processDocumentWithAgents(files, selectedProvider);
       
-      const newData = deepMerge(data, extractedData);
-      newData.fieldSources = {
-        ...(data.fieldSources || {}),
-        ...(fieldSources || {})
-      };
+      const mergedData = deepMerge(data, extractedBatch);
+      const updatedFieldCandidates = { ...(data.fieldCandidates || {}) };
+      const updatedFieldSources = { ...(data.fieldSources || {}) };
+
+      Object.entries(batchCandidates).forEach(([path, candidates]) => {
+        const wasPreviouslyFilled = isFilled(data, path);
+        const batchSource = batchSources[path];
+        
+        if (!updatedFieldCandidates[path]) {
+          updatedFieldCandidates[path] = candidates;
+        } else {
+          candidates.forEach(c => {
+            const exists = updatedFieldCandidates[path].some(existing => 
+              String(existing.value) === String(c.value)
+            );
+            if (!exists) updatedFieldCandidates[path].push(c);
+          });
+        }
+
+        if (!updatedFieldSources[path]) {
+          updatedFieldSources[path] = batchSource;
+        } else {
+          // Field was already filled OR the batch itself has internal conflicts
+          updatedFieldSources[path] = {
+            ...updatedFieldSources[path],
+            resolved: (wasPreviouslyFilled || !batchSource.resolved) ? false : true
+          };
+        }
+      });
+
+      // Agency ratings auto-resolution (highest information density wins)
+      Object.keys(updatedFieldCandidates).forEach(path => {
+        if (path.includes('publicRatings')) {
+          const candidates = updatedFieldCandidates[path];
+          if (candidates && candidates.length > 1) {
+            let maxInfo = -1;
+            let bestIdx = 0;
+            candidates.forEach((c, idx) => {
+              const infoSize = JSON.stringify(c.value).length;
+              if (infoSize > maxInfo) {
+                maxInfo = infoSize;
+                bestIdx = idx;
+              }
+            });
+            updatedFieldSources[path] = {
+              ...updatedFieldSources[path],
+              selectedIndices: [bestIdx],
+              resolved: true
+            };
+            
+            const keys = path.split('.');
+            let current: any = mergedData;
+            for (let i = 0; i < keys.length - 1; i++) {
+              current = current[keys[i]];
+            }
+            current[keys[keys.length - 1]] = candidates[bestIdx].value;
+          }
+        }
+      });
+
+      setData({
+        ...mergedData,
+        fieldCandidates: updatedFieldCandidates,
+        fieldSources: updatedFieldSources
+      } as CreditMemoData);
       
-      setData(newData as CreditMemoData);
-      setExtractedCount(Object.keys(fieldSources).length);
+      setExtractedCount(Object.keys(batchSources).length);
     } catch (error) {
-      console.error("AI extraction error:", error);
-      alert("Extraction failed. Ensure your API keys are valid.");
+      console.error("AI batch extraction error:", error);
+      alert("Extraction failed. Document processing may have timed out or reached model limits.");
     } finally {
       setIsProcessing(false);
     }
@@ -113,20 +227,19 @@ const App: React.FC = () => {
     if (confirm("Are you sure you want to clear this workspace? All document data and extracted fields will be permanently removed.")) {
       try {
         await db.clearAllData();
-        // Force state reset to initial values
         setData(getInitialData());
         setUploadedFiles([]);
         setExtractedCount(0);
         setLastSaved(null);
         setActiveSection('borrower_details');
-        // Small delay to ensure clear UI transition
-        console.log("Workspace reset successfully.");
       } catch (err) {
         console.error("Failed to clear data:", err);
-        alert("Reset failed. Please try refreshing the page.");
       }
     }
   };
+
+  // Fixed TypeScript error: Added type casting for source as FieldSource to resolve 'unknown' property access issue
+  const activeConflictsCount = Object.entries(data.fieldSources || {}).filter(([_, source]) => (source as FieldSource).resolved === false).length;
 
   return (
     <div className="flex h-screen bg-[#f4f7f4] overflow-hidden text-slate-900 font-sans">
@@ -144,6 +257,7 @@ const App: React.FC = () => {
           lastSaved={lastSaved}
           selectedProvider={selectedProvider}
           onProviderChange={setSelectedProvider}
+          hasConflicts={activeConflictsCount > 0}
         />
         
         <div className="bg-white border-b border-slate-200 px-8 py-4 z-10 shadow-sm flex items-center justify-between">
@@ -219,6 +333,8 @@ const App: React.FC = () => {
         selectedProvider={selectedProvider}
         onToggle={() => setIsChatOpen(false)}
         onPreviewFile={setPreviewFile}
+        onApplyCandidate={handleApplyCandidate}
+        onResolveConflict={handleResolveConflict}
       />
 
       <FilePreviewModal 

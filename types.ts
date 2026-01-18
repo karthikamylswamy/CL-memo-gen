@@ -42,6 +42,15 @@ export interface AiModel {
 export interface FieldSource {
   filename: string;
   pageNumber: string;
+  selectedIndices?: number[];
+  resolved?: boolean;
+}
+
+export interface FieldCandidate {
+  value: any;
+  sourceFile: string;
+  pageNumber: string;
+  confidence?: number;
 }
 
 export interface CreditMemoData {
@@ -70,6 +79,7 @@ export interface CreditMemoData {
     spotlightAccount: boolean;
     seaScore: string;
     additionalComments: string;
+    sectionImages?: SourceFile[];
   };
   purpose: {
     businessPurpose: string;
@@ -85,6 +95,7 @@ export interface CreditMemoData {
     syndicatedFacilities: string;
     fundingMix: string;
     additionalComments: string;
+    sectionImages?: SourceFile[];
   };
   creditPosition: {
     previousAuthorization: number;
@@ -100,6 +111,7 @@ export interface CreditMemoData {
     underwritingCommitment: string;
     timeToZeroHold: string;
     additionalComments: string;
+    sectionImages?: SourceFile[];
   };
   groupExposure: {
     entity: string;
@@ -120,6 +132,7 @@ export interface CreditMemoData {
       economicCapital: number;
     };
     additionalComments: string;
+    sectionImages?: SourceFile[];
   };
   reviewDates: {
     newAnnualDate: string;
@@ -164,6 +177,7 @@ export interface CreditMemoData {
       withinLimits: boolean;
     };
     additionalComments: string;
+    sectionImages?: SourceFile[];
   };
   facilityDetails: {
     summaries: any[];
@@ -174,6 +188,7 @@ export interface CreditMemoData {
     repayment: { amortizing: boolean; comments: string };
     prepayment: { permitted: boolean; comments: string };
     additionalComments: string;
+    sectionImages?: SourceFile[];
   };
   documentation: {
     agreementType: string;
@@ -192,6 +207,7 @@ export interface CreditMemoData {
     jCrewProvisions: string;
     subordinationRisk: string;
     additionalComments: string;
+    sectionImages?: SourceFile[];
   };
   analysis: {
     overview: { 
@@ -235,13 +251,16 @@ export interface CreditMemoData {
       executivesSupporting: string; 
     };
     additionalComments: string;
+    sectionImages?: SourceFile[];
   };
   compliance: {
     signOff: { name: string; title: string; date: string; approver: string };
     legal: { declarationInterest: string; directors: string; illegalTying: string };
     additionalComments: string;
+    sectionImages?: SourceFile[];
   };
   fieldSources?: Record<string, FieldSource>;
+  fieldCandidates?: Record<string, FieldCandidate[]>;
   [key: string]: any;
 }
 

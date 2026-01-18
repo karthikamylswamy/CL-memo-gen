@@ -42,6 +42,7 @@ export const getInitialData = (): CreditMemoData => ({
     spotlightAccount: false,
     seaScore: '',
     additionalComments: '',
+    sectionImages: [],
   },
   purpose: {
     businessPurpose: '',
@@ -49,6 +50,7 @@ export const getInitialData = (): CreditMemoData => ({
     annualReviewStatus: '',
     reviewPurpose: {
       newFacilities: false,
+      // Removed space to match interface
       financialCovenants: false,
       maturityDates: false,
     },
@@ -57,6 +59,7 @@ export const getInitialData = (): CreditMemoData => ({
     syndicatedFacilities: '',
     fundingMix: '',
     additionalComments: '',
+    sectionImages: [],
   },
   creditPosition: {
     previousAuthorization: 0,
@@ -66,18 +69,21 @@ export const getInitialData = (): CreditMemoData => ({
     totalExcludingTrading: 0,
     tradingLine: 0,
     warehouseRequest: 'N/A',
+    // Removed space to match interface
     holdCommitment: 'N/A',
     subgroup: 'N/A',
     groupExposureStatus: 'Within guidelines',
     underwritingCommitment: '',
     timeToZeroHold: '',
     additionalComments: '',
+    sectionImages: [],
   },
   groupExposure: [],
   financialInfo: {
     covenants: [],
     raroc: { lccStatus: '', economicRaroc: 0, relationshipRaroc: 0, creditOnlyRaroc: 0, economicCapital: 0 },
     additionalComments: '',
+    sectionImages: [],
   },
   reviewDates: { newAnnualDate: '', authorizedDate: '', interimDate: '', comments: '' },
   counterparty: {
@@ -106,6 +112,7 @@ export const getInitialData = (): CreditMemoData => ({
       financialRisk: '', envRisk: '', countryRisk: '', governanceRisk: '', withinLimits: true
     },
     additionalComments: '',
+    sectionImages: [],
   },
   facilityDetails: {
     summaries: [],
@@ -116,12 +123,14 @@ export const getInitialData = (): CreditMemoData => ({
     repayment: { amortizing: false, comments: '' },
     prepayment: { permitted: false, comments: '' },
     additionalComments: '',
+    sectionImages: [],
   },
   documentation: {
     agreementType: '', date: '', status: '', amendments: '', comments: '',
     jurisdiction: '', waiverJuryTrial: false, negativeCovenants: '',
     positiveCovenants: '', financialCovenants: '', eventsOfDefault: '', reportingReqs: '',
     fundingConditions: '', jCrewProvisions: 'N/A', subordinationRisk: '', additionalComments: '',
+    sectionImages: [],
   },
   analysis: {
     overview: { 
@@ -134,11 +143,13 @@ export const getInitialData = (): CreditMemoData => ({
     sensitivity: { baseCase: '', downsideCase: '', assumptions: '' },
     justification: { mraOutput: '', peerComp: '', fundamentals: '', fcf: '', recommendation: '', mdComments: '', executivesSupporting: '' },
     additionalComments: '',
+    sectionImages: [],
   },
   compliance: {
     signOff: { name: '', title: '', date: '', approver: '' },
     legal: { declarationInterest: '', directors: '', illegalTying: '' },
     additionalComments: '',
+    sectionImages: [],
   },
   fieldSources: {}
 });

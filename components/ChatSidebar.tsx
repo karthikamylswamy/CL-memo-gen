@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage, CreditMemoData, SourceFile, AiProvider } from '../types';
+import { ChatMessage, CreditMemoData, SourceFile, AiProvider, FieldCandidate, FieldSource } from '../types';
 import { chatWithAiAgent } from '../services/agentService';
 
 interface ChatSidebarProps {
@@ -10,6 +10,8 @@ interface ChatSidebarProps {
   selectedProvider: AiProvider;
   onToggle: () => void;
   onPreviewFile: (file: SourceFile) => void;
+  onApplyCandidate: (fieldPath: string, candidate: FieldCandidate, index: number) => void;
+  onResolveConflict: (fieldPath: string) => void;
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
@@ -18,9 +20,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   isOpen, 
   selectedProvider,
   onToggle, 
-  onPreviewFile 
+  onPreviewFile,
+  onApplyCandidate,
+  onResolveConflict
 }) => {
-  const [activeTab, setActiveTab] = useState<'chat' | 'files'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'files' | 'review'>('chat');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -85,6 +89,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
     }
   };
 
+  // Fixed TypeScript error: Added type casting for source as FieldSource to resolve 'unknown' property access issue
+  const conflictFields = Object.entries(data.fieldSources || {})
+    .filter(([path, source]) => (source as FieldSource).resolved === false)
+    .map(([path, source]) => {
+      return [path, data.fieldCandidates?.[path] || []] as [string, FieldCandidate[]];
+    });
+
   return (
     <aside 
       className={`fixed top-0 right-0 h-full bg-white border-l border-slate-200 shadow-2xl transition-all duration-500 z-50 flex flex-col ${
@@ -111,6 +122,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <div className="bg-slate-50/50 border-b border-slate-100 p-1 flex">
         <button onClick={() => setActiveTab('chat')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl ${activeTab === 'chat' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Assistant</button>
         <button onClick={() => setActiveTab('files')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl ${activeTab === 'files' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Files ({files.length})</button>
+        <button onClick={() => setActiveTab('review')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl relative ${activeTab === 'review' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+          Review
+          {conflictFields.length > 0 && (
+            <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-orange-500 shadow-sm"></span>
+          )}
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar bg-white" ref={scrollRef}>
@@ -134,7 +151,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'files' ? (
           <div className="p-6 space-y-4">
             {files.map(file => (
               <div key={file.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-xl transition-all group cursor-pointer" onClick={() => onPreviewFile(file)}>
@@ -147,6 +164,60 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 </div>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="p-6 space-y-8">
+            <div className="bg-orange-50 border border-orange-100 p-4 rounded-2xl">
+              <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">Extraction Review</h4>
+              <p className="text-[11px] text-orange-700 leading-relaxed">AI has extracted new variants for already-filled fields. Select the correct values and click Accept to update the memo.</p>
+            </div>
+
+            {conflictFields.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="text-4xl mb-4 opacity-10">🛡️</div>
+                <p className="text-xs font-black text-slate-300 uppercase tracking-[0.2em]">All Conflicts Resolved</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase mt-2">No pending extractions require review.</p>
+              </div>
+            ) : (
+              conflictFields.map(([path, candidates]) => {
+                const selections = data.fieldSources?.[path]?.selectedIndices || [];
+                return (
+                  <div key={path} className="space-y-3 bg-slate-50/30 p-4 rounded-3xl border border-slate-100">
+                    <h5 className="text-[9px] font-black text-slate-500 uppercase tracking-widest border-b pb-1">{path.split('.').pop()?.replace(/([A-Z])/g, ' $1')}</h5>
+                    <div className="space-y-2">
+                      {candidates.map((c, i) => {
+                        const isActive = selections.includes(i);
+                        return (
+                          <div 
+                            key={i} 
+                            className={`p-3 rounded-xl border transition-all cursor-pointer group flex gap-3 ${isActive ? 'border-tdgreen bg-tdgreen-light/20' : 'border-slate-100 bg-white hover:border-tdgreen/30'}`} 
+                            onClick={() => onApplyCandidate(path, c, i)}
+                          >
+                            <div className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 transition-all ${isActive ? 'bg-tdgreen border-tdgreen text-white' : 'bg-white border-slate-200'}`}>
+                              {isActive && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-bold text-slate-800 break-words block mb-1">{String(c.value)}</span>
+                              <div className="flex items-center gap-1.5 text-[8px] text-slate-400 font-bold uppercase tracking-tighter">
+                                <span className="truncate max-w-[100px]">{c.sourceFile}</span>
+                                <span>•</span>
+                                <span>P.{c.pageNumber}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button 
+                      onClick={() => onResolveConflict(path)}
+                      className="w-full py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-tdgreen transition-all"
+                    >
+                      Accept Selection
+                    </button>
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </div>

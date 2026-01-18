@@ -9,6 +9,7 @@ interface HeaderProps {
   lastSaved: Date | null;
   selectedProvider: AiProvider;
   onProviderChange: (provider: AiProvider) => void;
+  hasConflicts?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -16,7 +17,8 @@ const Header: React.FC<HeaderProps> = ({
   extractedCount, 
   lastSaved,
   selectedProvider,
-  onProviderChange
+  onProviderChange,
+  hasConflicts
 }) => {
   const isKeyMissing = selectedProvider === 'openai' 
     ? !getAzureOpenAiKey() 
@@ -32,6 +34,13 @@ const Header: React.FC<HeaderProps> = ({
       </div>
       
       <div className="flex items-center gap-6">
+        {hasConflicts && !isProcessing && (
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-orange-50 text-orange-600 rounded-full border border-orange-100 animate-in slide-in-from-right duration-500">
+            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+            <span className="text-[9px] font-black uppercase tracking-widest">Conflicts Detected</span>
+          </div>
+        )}
+
         <div className={`flex items-center gap-3 px-3 py-1.5 border rounded-xl transition-all ${isKeyMissing ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'}`}>
           <div className="flex flex-col">
             <span className={`text-[8px] font-black uppercase tracking-widest leading-none mb-1 ${isKeyMissing ? 'text-rose-500' : 'text-slate-400'}`}>
