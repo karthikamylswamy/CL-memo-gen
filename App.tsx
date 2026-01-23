@@ -12,17 +12,22 @@ import { processDocumentWithAgents } from './services/agentService';
 import { exportToWord } from './services/exportService';
 import * as db from './services/dbService';
 
-const deepMerge = (target: any, source: any) => {
-  const output = { ...target };
-  if (source && typeof source === 'object') {
-    Object.keys(source).forEach(key => {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        output[key] = deepMerge(target[key] || {}, source[key]);
-      } else {
-        output[key] = source[key];
-      }
-    });
-  }
+/**
+ * Array-safe deep merge to prevent converting arrays to objects
+ */
+const deepMerge = (target: any, source: any): any => {
+  if (Array.isArray(source)) return source;
+  if (!source || typeof source !== 'object') return source;
+  
+  const output = Array.isArray(target) ? [...target] : { ...target };
+  
+  Object.keys(source).forEach(key => {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      output[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      output[key] = source[key];
+    }
+  });
   return output;
 };
 
@@ -50,7 +55,11 @@ const App: React.FC = () => {
       try {
         const savedMemo = await db.loadMemo();
         const savedFiles = await db.loadFiles();
-        if (savedMemo) setData(savedMemo);
+        if (savedMemo) {
+          setData(savedMemo);
+          const totalExtracted = Object.keys(savedMemo.fieldSources || {}).length;
+          setExtractedCount(totalExtracted);
+        }
         if (savedFiles) setUploadedFiles(savedFiles);
       } catch (err) {
         console.error("Failed to load data from IndexedDB:", err);
@@ -67,7 +76,12 @@ const App: React.FC = () => {
   }, [data]);
 
   const handleUpdateData = useCallback((updates: Partial<CreditMemoData>) => {
-    setData(prev => ({ ...prev, ...updates }));
+    setData(prev => {
+      const newData = { ...prev, ...updates };
+      const totalExtracted = Object.keys(newData.fieldSources || {}).length;
+      setExtractedCount(totalExtracted);
+      return newData;
+    });
   }, []);
 
   const handleApplyCandidate = useCallback((fieldPath: string, candidate: FieldCandidate, index: number) => {
@@ -122,7 +136,6 @@ const App: React.FC = () => {
 
   const handleFileUpload = async (files: File[]) => {
     setIsProcessing(true);
-    setExtractedCount(0);
     
     const fileLoadPromises = files.map(file => {
       return new Promise<SourceFile>((resolve) => {
@@ -161,7 +174,7 @@ const App: React.FC = () => {
         } else {
           candidates.forEach(c => {
             const exists = updatedFieldCandidates[path].some(existing => 
-              String(existing.value) === String(c.value)
+              String(existing.value).toLowerCase() === String(c.value).toLowerCase()
             );
             if (!exists) updatedFieldCandidates[path].push(c);
           });
@@ -170,7 +183,6 @@ const App: React.FC = () => {
         if (!updatedFieldSources[path]) {
           updatedFieldSources[path] = batchSource;
         } else {
-          // Field was already filled OR the batch itself has internal conflicts
           updatedFieldSources[path] = {
             ...updatedFieldSources[path],
             resolved: (wasPreviouslyFilled || !batchSource.resolved) ? false : true
@@ -178,7 +190,7 @@ const App: React.FC = () => {
         }
       });
 
-      // Agency ratings auto-resolution (highest information density wins)
+      // Agency ratings auto-resolution
       Object.keys(updatedFieldCandidates).forEach(path => {
         if (path.includes('publicRatings')) {
           const candidates = updatedFieldCandidates[path];
@@ -214,7 +226,7 @@ const App: React.FC = () => {
         fieldSources: updatedFieldSources
       } as CreditMemoData);
       
-      setExtractedCount(Object.keys(batchSources).length);
+      setExtractedCount(Object.keys(updatedFieldSources).length);
     } catch (error) {
       console.error("AI batch extraction error:", error);
       alert("Extraction failed. Document processing may have timed out or reached model limits.");
@@ -224,7 +236,7 @@ const App: React.FC = () => {
   };
 
   const handleReset = async () => {
-    if (confirm("Are you sure you want to clear this workspace? All document data and extracted fields will be permanently removed.")) {
+    if (confirm("Are you sure you want to clear this workspace?")) {
       try {
         await db.clearAllData();
         setData(getInitialData());
@@ -238,7 +250,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Fixed TypeScript error: Added type casting for source as FieldSource to resolve 'unknown' property access issue
   const activeConflictsCount = Object.entries(data.fieldSources || {}).filter(([_, source]) => (source as FieldSource).resolved === false).length;
 
   return (
@@ -291,14 +302,6 @@ const App: React.FC = () => {
                     </h2>
                   </div>
                 </div>
-                {uploadedFiles.length > 0 && (
-                  <button 
-                    onClick={() => setActiveSection('source_documents')}
-                    className="text-[10px] font-black uppercase tracking-widest text-tdgreen hover:bg-tdgreen-light/50 px-4 py-2 rounded-xl transition-all"
-                  >
-                    View {uploadedFiles.length} Source Files
-                  </button>
-                )}
               </div>
               
               <div className="p-10">

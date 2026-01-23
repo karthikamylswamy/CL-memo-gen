@@ -46,17 +46,22 @@ export const getStandardOpenAiKey = (): string | null => {
   return (process as any).env.OPENAI_API_KEY || null;
 };
 
-const deepMerge = (target: any, source: any) => {
-  const output = { ...target };
-  if (source && typeof source === 'object') {
-    Object.keys(source).forEach(key => {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        output[key] = deepMerge(target[key] || {}, source[key]);
-      } else {
-        output[key] = source[key];
-      }
-    });
-  }
+/**
+ * Array-safe deep merge to prevent converting arrays to objects
+ */
+const deepMerge = (target: any, source: any): any => {
+  if (Array.isArray(source)) return source;
+  if (!source || typeof source !== 'object') return source;
+  
+  const output = Array.isArray(target) ? [...target] : { ...target };
+  
+  Object.keys(source).forEach(key => {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      output[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      output[key] = source[key];
+    }
+  });
   return output;
 };
 
@@ -73,7 +78,7 @@ async function generateAIResponse(params: {
   usePro?: boolean;
 }) {
   if (params.provider === 'google') {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     
     const parts: any[] = [];
     if (params.files) {
@@ -152,7 +157,6 @@ async function generateAIResponse(params: {
       messages.push({ role: "system", content: params.systemInstruction });
     }
 
-    // Force JSON instruction for OpenAI json_object mode
     let prompt = params.prompt;
     if (params.jsonSchema) {
       prompt += "\n\nCRITICAL: Return the response as a valid JSON object matching the requested schema. Do not include markdown formatting or explanations outside the JSON.";
@@ -162,7 +166,6 @@ async function generateAIResponse(params: {
     const userContent: any[] = [{ type: "text", text: prompt }];
     if (params.files) {
       params.files.forEach(f => {
-        // OpenAI only supports images in Chat Completions directly
         if (f.mimeType.startsWith('image/')) {
           userContent.push({
             type: "image_url",
@@ -232,7 +235,14 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
   const extractFromFile = async (file: {data: string, mimeType: string, name: string}) => {
     const extractionPrompt = `
       Act as an Elite Syndicate Credit Analyst. Perform an EXHAUSTIVE extraction on document: ${file.name}.
-      Identify: Borrower names, requested amounts, financial metrics (EBITDA, Revenue, RAROC), rating agency grades (Moody's, S&P, Fitch), covenants, and pricing terms.
+      Scan EVERY sentence. Populate as many fields as possible in the 'extractedData' structure.
+      
+      MANDATORY AUDIT TRAIL RULES:
+      1. For EVERY value you populate in 'extractedData', you MUST provide a corresponding entry in 'allFindings'.
+      2. 'fieldPath' in 'allFindings' MUST be the exact dot-notation path to the field (e.g., "primaryBorrower.borrowerName").
+      3. 'sourceFile' MUST be exactly "${file.name}".
+      4. 'pageNumber' MUST be the specific page where that specific piece of information was found (e.g. "Page 1").
+      5. Extraction count is critical. Do not ignore minor fields like "Originating Office" or "Jurisdiction".
     `;
 
     const result = await generateAIResponse({
@@ -307,10 +317,17 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
     });
 
     try {
-      return JSON.parse(result.text);
+      const parsed = JSON.parse(result.text);
+      if (parsed.allFindings) {
+        parsed.allFindings = parsed.allFindings.map((f: any) => ({
+          ...f,
+          sourceFile: file.name
+        }));
+      }
+      return parsed;
     } catch (e) {
       console.error("JSON Parsing Error:", result.text);
-      throw new Error("The AI response was not valid JSON. This can happen with very large documents.");
+      throw new Error("The AI response was not valid JSON.");
     }
   };
 
@@ -328,7 +345,7 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
   const fieldCandidates: Record<string, FieldCandidate[]> = {};
 
   allFindings.forEach((item: any) => {
-    if (item.fieldPath) {
+    if (item.fieldPath && item.value !== undefined && item.value !== null && item.value !== "") {
       const candidate: FieldCandidate = {
         value: item.value,
         sourceFile: item.sourceFile,
@@ -341,7 +358,7 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
       }
       
       const exists = fieldCandidates[item.fieldPath].some(c => 
-        String(c.value) === String(candidate.value)
+        String(c.value).toLowerCase() === String(candidate.value).toLowerCase()
       );
       
       if (!exists) {
@@ -370,8 +387,8 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
 
   const synthesizeNarrative = async () => {
     const synthesisPrompt = `
-      You are a Senior Managing Director in Syndicate Loans. Review the multi-document extraction results: ${JSON.stringify(combinedExtracted)}.
-      Write a sharp, strategic executive summary for the credit memo. Focus on: Deal context, credit strength/weakness, and a clear recommendation.
+      You are a Senior Managing Director in Syndicate Loans. Review the extraction results: ${JSON.stringify(combinedExtracted)}.
+      Write a strategic recommendation.
     `;
 
     const result = await generateAIResponse({
@@ -407,7 +424,7 @@ export const chatWithAiAgent = async (params: {
   memoContext: CreditMemoData;
   files: SourceFile[];
 }) => {
-  const systemInstruction = `You are a Senior Credit Analysis Agent. Context: ${JSON.stringify(params.memoContext)}. Help the analyst refine the memo by answering questions based on deal documents.`;
+  const systemInstruction = `You are a Senior Credit Analysis Agent. Context: ${JSON.stringify(params.memoContext)}. Answer using deal documents.`;
   
   const chatFiles = params.files.slice(0, 3).map(f => ({
     data: f.dataUrl.split(',')[1],

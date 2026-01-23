@@ -252,7 +252,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
       <div className="col-span-full mt-8 pt-8 border-t border-slate-100">
         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Attached Exhibits & Charts</h4>
         <div className="flex flex-wrap gap-4">
-          {currentImages.map((img) => (
+          {(Array.isArray(currentImages) ? currentImages : []).map((img) => (
             <div key={img.id} className="relative group w-32 h-32 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
               <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
               <button 
@@ -274,7 +274,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
   };
 
   const PreviewImageGallery = ({ images }: { images?: SourceFile[] }) => {
-    if (!images || images.length === 0) return null;
+    if (!images || !Array.isArray(images) || images.length === 0) return null;
     return (
       <div className="px-6 my-10 grid grid-cols-1 md:grid-cols-2 gap-6">
         {images.map((img) => (
@@ -409,26 +409,26 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                   </tr>
                 </thead>
                 <tbody>
-                  {(data.riskAssessment?.publicRatings || []).map((rating, i) => (
+                  {(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : []).map((rating, i) => (
                     <tr key={i} className="border-b border-slate-100 last:border-0">
                       <td className="p-4 font-black text-slate-800 text-sm">{rating.agency}</td>
                       <td className="p-2"><input type="text" value={rating.issuerRating || ''} onChange={(e) => {
-                        const r = [...(data.riskAssessment?.publicRatings || [])];
+                        const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
                         r[i].issuerRating = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.seniorUnsecured || ''} onChange={(e) => {
-                        const r = [...(data.riskAssessment?.publicRatings || [])];
+                        const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
                         r[i].seniorUnsecured = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.outlook || ''} onChange={(e) => {
-                        const r = [...(data.riskAssessment?.publicRatings || [])];
+                        const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
                         r[i].outlook = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.updatedAt || ''} onChange={(e) => {
-                        const r = [...(data.riskAssessment?.publicRatings || [])];
+                        const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
                         r[i].updatedAt = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
@@ -773,7 +773,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                    <div className="flex-1 pl-8">
                       <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Public ratings watch</h4>
                       <div className="flex gap-10">
-                         {data.riskAssessment?.publicRatings?.map((r, i) => (
+                         {(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : []).map((r, i) => (
                             <div key={i}>
                                <p className="text-[10px] font-black">{r.agency}</p>
                                <p className="text-xs font-bold text-slate-600">{r.issuerRating || "N/A"} ({r.outlook || "N/A"})</p>
@@ -948,7 +948,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                         </tr>
                     </thead>
                     <tbody className="font-bold">
-                        {(data.riskAssessment?.publicRatings || []).map((rating, i) => (
+                        {(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : []).map((rating, i) => (
                           <tr key={i} className="border-b last:border-0">
                             <td className="p-3 text-slate-900">{rating.agency}</td>
                             <td className="p-3 text-slate-700">{rating.issuerRating || "N/A"}</td>
