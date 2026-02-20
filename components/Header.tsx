@@ -41,26 +41,24 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        <div className={`flex items-center gap-3 px-3 py-1.5 border rounded-xl transition-all ${isKeyMissing ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'}`}>
-          <div className="flex flex-col">
-            <span className={`text-[8px] font-black uppercase tracking-widest leading-none mb-1 ${isKeyMissing ? 'text-rose-500' : 'text-slate-400'}`}>
-              {isKeyMissing ? '⚠️ KEY MISSING' : 'Intelligence Engine'}
+        <div className={`flex items-center gap-2 px-2 py-1 border rounded-lg transition-all ${isKeyMissing ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'}`}>
+          <div className="flex flex-col items-center">
+            <span className={`text-[8px] font-black uppercase tracking-widest leading-none ${isKeyMissing ? 'text-rose-500' : 'text-slate-400'}`}>
+              {isKeyMissing ? '⚠️ KEY' : 'Action'}
             </span>
-            <select 
-              value={selectedProvider}
-              onChange={(e) => onProviderChange(e.target.value as AiProvider)}
-              className="bg-transparent text-[10px] font-black text-slate-700 uppercase tracking-widest outline-none cursor-pointer pr-2"
-            >
-              <option value="google">Gemini (Google)</option>
-              <option value="openai">GPT-4o (OpenAI)</option>
-            </select>
-          </div>
-          <div className={`w-px h-6 mx-1 ${isKeyMissing ? 'bg-rose-200' : 'bg-slate-200'}`}></div>
-          <div className="flex items-center gap-1.5">
-             <span className={`w-2 h-2 rounded-full animate-pulse ${isKeyMissing ? 'bg-rose-500' : (selectedProvider === 'google' ? 'bg-tdgreen' : 'bg-blue-500')}`}></span>
-             <span className={`text-[9px] font-black uppercase tracking-widest ${isKeyMissing ? 'text-rose-500' : (selectedProvider === 'google' ? 'text-tdgreen' : 'text-blue-500')}`}>
-               {selectedProvider === 'google' ? 'PRO' : 'ADVANCED'}
-             </span>
+            <div className="relative flex items-center justify-center h-3 w-4 mt-0.5">
+              <select 
+                value={selectedProvider}
+                onChange={(e) => onProviderChange(e.target.value as AiProvider)}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+              >
+                <option value="google">Gemini (Google)</option>
+                <option value="openai">GPT-4o (OpenAI)</option>
+              </select>
+              <svg className="w-2.5 h-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
         </div>
 
