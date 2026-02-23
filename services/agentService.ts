@@ -449,7 +449,7 @@ export const updateSectionWithFeedback = async (params: {
   feedback: string;
   currentData: CreditMemoData;
   files: SourceFile[];
-}): Promise<Partial<CreditMemoData>> => {
+}): Promise<{ updatedData: Partial<CreditMemoData>, changes: string[] }> => {
   const sectionData = params.currentData[params.section] || {};
   
   const systemInstruction = `
@@ -461,10 +461,12 @@ export const updateSectionWithFeedback = async (params: {
     User Feedback: "${params.feedback}"
     
     CRITICAL: 
-    1. Return ONLY the updated fields for this section in a JSON object.
-    2. Maintain the existing structure of the section.
-    3. Use the provided deal documents (if any) to verify and enrich the content if the feedback suggests it.
-    4. If the feedback is a general instruction (e.g., "make it more concise"), apply it to the relevant narrative fields.
+    1. Return a JSON object with two properties: 'updatedFields' and 'changesSummary'.
+    2. 'updatedFields' should contain ONLY the fields that were actually changed or added in this section.
+    3. 'changesSummary' should be an array of strings describing what was updated (e.g., ["Updated Borrower Name to 'X'", "Refined company description for conciseness"]).
+    4. Maintain the existing structure of the section.
+    5. Use the provided deal documents (if any) to verify and enrich the content if the feedback suggests it.
+    6. If no changes are needed or feedback is irrelevant, return empty updatedFields and a message in changesSummary.
   `;
 
   const chatFiles = params.files.slice(0, 5).map(f => ({
@@ -481,13 +483,30 @@ export const updateSectionWithFeedback = async (params: {
     usePro: true,
     jsonSchema: {
       type: Type.OBJECT,
-      description: `Updated fields for the ${params.section} section`
+      properties: {
+        updatedFields: { 
+          type: Type.OBJECT,
+          description: "The modified fields for this section"
+        },
+        changesSummary: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING },
+          description: "List of specific changes made"
+        }
+      },
+      required: ["updatedFields", "changesSummary"]
     }
   });
 
   try {
-    const updatedFields = JSON.parse(result.text);
-    return { [params.section]: { ...sectionData, ...updatedFields } };
+    const parsed = JSON.parse(result.text);
+    const updatedFields = parsed.updatedFields || {};
+    const changes = parsed.changesSummary || [];
+    
+    return { 
+      updatedData: { [params.section]: updatedFields },
+      changes
+    };
   } catch (e) {
     console.error("Failed to parse agent update:", result.text);
     throw new Error("AI failed to provide a valid update. Please try again with more specific feedback.");

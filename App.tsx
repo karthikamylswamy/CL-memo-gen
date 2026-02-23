@@ -49,6 +49,15 @@ const App: React.FC = () => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [previewFile, setPreviewFile] = useState<SourceFile | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<AiProvider>('google');
+  const [notifications, setNotifications] = useState<{ id: string; title: string; items: string[] }[]>([]);
+
+  const addNotification = (title: string, items: string[]) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setNotifications(prev => [...prev, { id, title, items }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 8000);
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -77,7 +86,7 @@ const App: React.FC = () => {
 
   const handleUpdateData = useCallback((updates: Partial<CreditMemoData>) => {
     setData(prev => {
-      const newData = { ...prev, ...updates };
+      const newData = deepMerge(prev, updates);
       const totalExtracted = Object.keys(newData.fieldSources || {}).length;
       setExtractedCount(totalExtracted);
       return newData;
@@ -138,14 +147,21 @@ const App: React.FC = () => {
     if (!feedback.trim()) return;
     setIsProcessing(true);
     try {
-      const updates = await updateSectionWithFeedback({
+      const { updatedData, changes } = await updateSectionWithFeedback({
         provider: selectedProvider,
         section,
         feedback,
         currentData: data,
         files: uploadedFiles
       });
-      handleUpdateData(updates);
+      
+      handleUpdateData(updatedData);
+      
+      if (changes && changes.length > 0) {
+        addNotification(`Section Updated: ${section.replace(/_/g, ' ')}`, changes);
+      } else {
+        addNotification(`Refinement Complete`, ["No specific fields were changed, but the context has been updated."]);
+      }
       
       // Clear feedback for this section
       setData(prev => ({
@@ -375,6 +391,32 @@ const App: React.FC = () => {
         file={previewFile} 
         onClose={() => setPreviewFile(null)} 
       />
+
+      {/* Notifications */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-4 w-full max-w-md px-4 pointer-events-none">
+        {notifications.map(n => (
+          <div key={n.id} className="bg-slate-900 text-white rounded-3xl p-6 shadow-2xl border border-slate-700 animate-in slide-in-from-bottom-10 duration-500 pointer-events-auto">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-brandgreen text-white flex items-center justify-center text-lg">✨</div>
+              <h4 className="font-black text-xs uppercase tracking-widest">{n.title}</h4>
+              <button 
+                onClick={() => setNotifications(prev => prev.filter(notif => notif.id !== n.id))}
+                className="ml-auto p-1 hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <ul className="space-y-2">
+              {n.items.map((item, i) => (
+                <li key={i} className="flex gap-3 text-xs text-slate-300 font-medium leading-relaxed">
+                  <span className="text-brandgreen font-black">•</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

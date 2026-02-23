@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreditMemoData, SectionKey, SourceFile, PublicRating, FieldSource } from '../types';
 
 interface SectionRendererProps {
@@ -296,6 +296,10 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
   const FeedbackPanel = ({ sectionKey }: { sectionKey: SectionKey }) => {
     const feedback = data.sectionFeedback?.[sectionKey] || '';
     const [localFeedback, setLocalFeedback] = useState(feedback);
+
+    useEffect(() => {
+      setLocalFeedback(feedback);
+    }, [feedback]);
 
     const handleSubmit = () => {
       if (onFeedbackSubmit) {
