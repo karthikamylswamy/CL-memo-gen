@@ -104,12 +104,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
     >
       <div className="h-16 border-b border-slate-100 flex items-center justify-between px-6 bg-slate-50/50 shrink-0">
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black shadow-lg uppercase tracking-tighter text-white ${selectedProvider === 'google' ? 'bg-tdgreen shadow-tdgreen/20' : 'bg-blue-600 shadow-blue-600/20'}`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black shadow-lg uppercase tracking-tighter text-white ${selectedProvider === 'google' ? 'bg-brandgreen shadow-brandgreen/20' : 'bg-blue-600 shadow-blue-600/20'}`}>
             {selectedProvider === 'google' ? 'G' : 'O'}
           </div>
           <div className="flex flex-col">
             <h3 className="font-black text-slate-800 tracking-tight text-[10px] uppercase leading-none">Credit Hub</h3>
-            <span className={`text-[8px] font-bold uppercase tracking-widest mt-0.5 ${selectedProvider === 'google' ? 'text-tdgreen' : 'text-blue-600'}`}>
+            <span className={`text-[8px] font-bold uppercase tracking-widest mt-0.5 ${selectedProvider === 'google' ? 'text-brandgreen' : 'text-blue-600'}`}>
               Provider: {providerLabel}
             </span>
           </div>
@@ -145,9 +145,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             ))}
             {isTyping && (
               <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100 self-start">
-                <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${selectedProvider === 'google' ? 'bg-tdgreen' : 'bg-blue-600'}`}></div>
-                <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${selectedProvider === 'google' ? 'bg-tdgreen' : 'bg-blue-600'}`} style={{ animationDelay: '150ms' }}></div>
-                <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${selectedProvider === 'google' ? 'bg-tdgreen' : 'bg-blue-600'}`} style={{ animationDelay: '300ms' }}></div>
+                <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${selectedProvider === 'google' ? 'bg-brandgreen' : 'bg-blue-600'}`}></div>
+                <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${selectedProvider === 'google' ? 'bg-brandgreen' : 'bg-blue-600'}`} style={{ animationDelay: '150ms' }}></div>
+                <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${selectedProvider === 'google' ? 'bg-brandgreen' : 'bg-blue-600'}`} style={{ animationDelay: '300ms' }}></div>
               </div>
             )}
           </div>
@@ -158,7 +158,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-xl shadow-sm transition-transform group-hover:scale-110">{file.type === 'application/pdf' ? '📕' : '📄'}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-black text-slate-800 text-xs truncate group-hover:text-tdgreen transition-colors">{file.name}</p>
+                    <p className="font-black text-slate-800 text-xs truncate group-hover:text-brandgreen transition-colors">{file.name}</p>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB • {file.type.split('/')[1].toUpperCase()}</p>
                   </div>
                 </div>
@@ -190,10 +190,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         return (
                           <div 
                             key={i} 
-                            className={`p-3 rounded-xl border transition-all cursor-pointer group flex gap-3 ${isActive ? 'border-tdgreen bg-tdgreen-light/20' : 'border-slate-100 bg-white hover:border-tdgreen/30'}`} 
+                            className={`p-3 rounded-xl border transition-all cursor-pointer group flex gap-3 ${isActive ? 'border-brandgreen bg-brandgreen-light/20' : 'border-slate-100 bg-white hover:border-brandgreen/30'}`} 
                             onClick={() => onApplyCandidate(path, c, i)}
                           >
-                            <div className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 transition-all ${isActive ? 'bg-tdgreen border-tdgreen text-white' : 'bg-white border-slate-200'}`}>
+                            <div className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 transition-all ${isActive ? 'bg-brandgreen border-brandgreen text-white' : 'bg-white border-slate-200'}`}>
                               {isActive && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -210,7 +210,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     </div>
                     <button 
                       onClick={() => onResolveConflict(path)}
-                      className="w-full py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-tdgreen transition-all"
+                      className="w-full py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-brandgreen transition-all"
                     >
                       Accept Selection
                     </button>

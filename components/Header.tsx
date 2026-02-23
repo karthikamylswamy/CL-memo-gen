@@ -27,10 +27,10 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-40">
       <div className="flex items-center gap-4">
-        <div className="w-9 h-9 bg-tdgreen rounded flex items-center justify-center text-white font-black text-xl shadow-sm">
-          TD
+        <div className="w-9 h-9 bg-slate-800 rounded flex items-center justify-center text-white font-black text-xl shadow-sm">
+          CM
         </div>
-        <h1 className="text-lg font-black text-slate-800 tracking-tight">Maple <span className="text-slate-400 font-normal ml-2">| Credit Memo Builder</span></h1>
+        <h1 className="text-lg font-black text-slate-800 tracking-tight">Credit Memo <span className="text-slate-400 font-normal ml-2">| AI Builder</span></h1>
       </div>
       
       <div className="flex items-center gap-6">
@@ -70,8 +70,8 @@ const Header: React.FC<HeaderProps> = ({
         )}
 
         {isProcessing && (
-          <div className="flex items-center gap-2 text-sm font-bold text-tdgreen animate-pulse">
-            <svg className="animate-spin h-4 w-4 text-tdgreen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2 text-sm font-bold text-brandgreen animate-pulse">
+            <svg className="animate-spin h-4 w-4 text-brandgreen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -80,7 +80,7 @@ const Header: React.FC<HeaderProps> = ({
         )}
         
         {extractedCount > 0 && !isProcessing && (
-          <span className="bg-tdgreen-light text-tdgreen-dark px-3 py-1 rounded-full text-xs font-black uppercase tracking-tight border border-tdgreen/10">
+          <span className="bg-brandgreen-light text-brandgreen-dark px-3 py-1 rounded-full text-xs font-black uppercase tracking-tight border border-brandgreen/10">
             {extractedCount} Fields Extracted
           </span>
         )}

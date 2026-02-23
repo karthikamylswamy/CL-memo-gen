@@ -1,7 +1,7 @@
 
 import { CreditMemoData, SourceFile } from "../types";
 
-const DB_NAME = "MapleCreditMemoDB";
+const DB_NAME = "CreditMemoAI_DB";
 const STORE_MEMO = "memo_data";
 const STORE_FILES = "source_files";
 const DB_VERSION = 1;

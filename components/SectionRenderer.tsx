@@ -7,6 +7,8 @@ interface SectionRendererProps {
   data: CreditMemoData;
   files?: SourceFile[];
   onChange: (updates: Partial<CreditMemoData>) => void;
+  onFeedbackSubmit?: (section: SectionKey, feedback: string) => void;
+  isProcessing?: boolean;
 }
 
 const MarkdownTable: React.FC<{ content: string }> = ({ content }) => {
@@ -69,8 +71,8 @@ const SmartNarrative: React.FC<{ text: string, files?: SourceFile[] }> = ({ text
             const isImage = file.type.startsWith('image/');
             return (
               <div key={i} className="my-6 space-y-2">
-                <div className="text-[9px] font-black text-tdgreen uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-tdgreen animate-pulse"></span>
+                <div className="text-[9px] font-black text-brandgreen uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-brandgreen animate-pulse"></span>
                   Exhibit: {alt}
                 </div>
                 {isImage ? (
@@ -104,7 +106,7 @@ const SourceBadge: React.FC<{ source?: FieldSource, hasConflicts?: boolean }> = 
   return (
     <div className="group relative inline-flex ml-2 items-center gap-1">
       {source && (
-        <div className="px-2 py-0.5 bg-tdgreen/10 rounded-full text-tdgreen border border-tdgreen/20 flex items-center gap-1.5 transition-all hover:bg-tdgreen/20 cursor-help">
+        <div className="px-2 py-0.5 bg-brandgreen/10 rounded-full text-brandgreen border border-brandgreen/20 flex items-center gap-1.5 transition-all hover:bg-brandgreen/20 cursor-help">
           <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           <span className="text-[8px] font-black uppercase tracking-tighter">Ref: {source.pageNumber}</span>
         </div>
@@ -116,7 +118,7 @@ const SourceBadge: React.FC<{ source?: FieldSource, hasConflicts?: boolean }> = 
   );
 };
 
-const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files = [], onChange }) => {
+const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files = [], onChange, onFeedbackSubmit, isProcessing }) => {
   const [selectedFile, setSelectedFile] = useState<SourceFile | null>(null);
 
   const setNested = (path: string, val: any) => {
@@ -151,10 +153,10 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           {path && <SourceBadge source={data.fieldSources?.[path]} hasConflicts={(data.fieldCandidates?.[path]?.length || 0) > 1} />}
         </div>
         <div className="flex items-center gap-3">
-          <span className={`text-[10px] font-black uppercase tracking-widest ${value === true ? 'text-tdgreen' : 'text-slate-400'}`}>
+          <span className={`text-[10px] font-black uppercase tracking-widest ${value === true ? 'text-brandgreen' : 'text-slate-400'}`}>
             {displayValue}
           </span>
-          <div className={`w-3 h-3 rounded-full ${value === true ? 'bg-tdgreen shadow-[0_0_8px_rgba(0,138,0,0.5)]' : 'bg-slate-200'}`}></div>
+          <div className={`w-3 h-3 rounded-full ${value === true ? 'bg-brandgreen shadow-[0_0_8px_rgba(0,138,0,0.5)]' : 'bg-slate-200'}`}></div>
         </div>
       </div>
     );
@@ -196,7 +198,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         type={type}
         value={getNested(data, path) || ''}
         onChange={(e) => setNested(path, type === "number" ? Number(e.target.value) : e.target.value)}
-        className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 focus:ring-4 focus:ring-tdgreen/10 focus:border-tdgreen outline-none transition-all shadow-sm font-medium text-sm"
+        className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 focus:ring-4 focus:ring-brandgreen/10 focus:border-brandgreen outline-none transition-all shadow-sm font-medium text-sm"
       />
     </div>
   );
@@ -211,14 +213,14 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
         rows={rows}
         value={getNested(data, path) || ''}
         onChange={(e) => setNested(path, e.target.value)}
-        className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-700 focus:ring-4 focus:ring-tdgreen/10 focus:border-tdgreen outline-none transition-all resize-none shadow-sm text-sm leading-relaxed"
+        className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-700 focus:ring-4 focus:ring-brandgreen/10 focus:border-brandgreen outline-none transition-all resize-none shadow-sm text-sm leading-relaxed"
       />
     </div>
   );
 
   const wrapCheckbox = (label: string, path: string) => (
-    <label className="flex items-center gap-4 p-5 rounded-xl border border-slate-100 hover:border-tdgreen/20 hover:bg-tdgreen-light/30 cursor-pointer transition-all shadow-sm bg-white group">
-      <input type="checkbox" checked={!!getNested(data, path)} onChange={(e) => setNested(path, e.target.checked)} className="w-6 h-6 text-tdgreen rounded-lg border-slate-300 focus:ring-tdgreen transition-all" />
+    <label className="flex items-center gap-4 p-5 rounded-xl border border-slate-100 hover:border-brandgreen/20 hover:bg-brandgreen-light/30 cursor-pointer transition-all shadow-sm bg-white group">
+      <input type="checkbox" checked={!!getNested(data, path)} onChange={(e) => setNested(path, e.target.checked)} className="w-6 h-6 text-brandgreen rounded-lg border-slate-300 focus:ring-brandgreen transition-all" />
       <span className="text-sm font-bold text-slate-700">{label}</span>
     </label>
   );
@@ -263,7 +265,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
               </button>
             </div>
           ))}
-          <label className="w-32 h-32 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-tdgreen hover:bg-tdgreen/5 transition-all text-slate-400 hover:text-tdgreen">
+          <label className="w-32 h-32 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-brandgreen hover:bg-brandgreen/5 transition-all text-slate-400 hover:text-brandgreen">
             <input type="file" accept="image/*" className="hidden" onChange={handleImageAdd} />
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
             <span className="text-[9px] font-black uppercase tracking-tighter">Add Image</span>
@@ -291,74 +293,136 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     );
   };
 
+  const FeedbackPanel = ({ sectionKey }: { sectionKey: SectionKey }) => {
+    const feedback = data.sectionFeedback?.[sectionKey] || '';
+    const [localFeedback, setLocalFeedback] = useState(feedback);
+
+    const handleSubmit = () => {
+      if (onFeedbackSubmit) {
+        onFeedbackSubmit(sectionKey, localFeedback);
+      }
+    };
+
+    return (
+      <div className="mt-12 pt-8 border-t border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-xl bg-brandgreen/10 text-brandgreen flex items-center justify-center text-lg">✨</div>
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Agent Feedback & Refinement</h4>
+        </div>
+        <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-inner">
+          <p className="text-xs text-slate-500 mb-4 font-medium leading-relaxed">
+            Provide instructions or feedback for this specific section. The AI agent will update the content based on your input and the deal documents.
+          </p>
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <textarea
+                value={localFeedback}
+                onChange={(e) => setLocalFeedback(e.target.value)}
+                placeholder="e.g., 'Make the company description more concise' or 'Update the EBITDA based on the latest Q3 report'..."
+                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-4 focus:ring-brandgreen/10 focus:border-brandgreen transition-all resize-none shadow-sm min-h-[100px]"
+              />
+            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={isProcessing || !localFeedback.trim()}
+              className={`px-6 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-2 min-w-[120px] ${
+                isProcessing || !localFeedback.trim()
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : 'bg-brandgreen text-white shadow-lg shadow-brandgreen/20 hover:scale-105 active:scale-95'
+              }`}
+            >
+              {isProcessing ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  <span>Update</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   switch (section) {
     case 'borrower_details':
       return (
-        <div className="grid grid-cols-2 gap-8">
-          {wrapInput("Borrower Name", "primaryBorrower.borrowerName")}
-          {wrapInput("Group", "primaryBorrower.group")}
-          {wrapInput("Originating Office", "primaryBorrower.originatingOffice")}
-          {wrapInput("Account Classification", "primaryBorrower.accountClassification")}
-          {wrapInput("Customer Since", "counterparty.info.customerSince")}
-          <div className="col-span-full text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] border-b pb-2 mb-4">Leveraged Lending Flags</div>
-          <div className="col-span-full grid grid-cols-3 gap-5">
-            {wrapCheckbox("Leveraged Lending", "primaryBorrower.leveragedLending")}
-            {wrapCheckbox("Regulatory Leveraged", "primaryBorrower.regulatoryLeveragedLoan")}
-            {wrapCheckbox("TDS Leveraged Loan", "primaryBorrower.tdsLeveragedLoan")}
-            {wrapCheckbox("High Leverage (>5.5x)", "primaryBorrower.highLeverageLoan")}
-            {wrapCheckbox("Extreme Leverage (>6.0x)", "primaryBorrower.extremeLeverage")}
-            {wrapCheckbox("Covenant Lite", "primaryBorrower.covenantLite")}
-            {wrapCheckbox("High Risk Account", "primaryBorrower.highRiskAccount")}
-            {wrapCheckbox("Spotlight Account", "primaryBorrower.spotlightAccount")}
-            {wrapCheckbox("CB Credit Standards Exception", "primaryBorrower.creditException")}
-            {wrapCheckbox("Weak Underwriting", "primaryBorrower.weakUnderwriting")}
-            {wrapCheckbox("Euro Infrastructure Sub Limit", "primaryBorrower.euroInfraLimit")}
-            {wrapCheckbox("HRSL Sub Limit", "primaryBorrower.hrslSubLimit")}
-            {wrapCheckbox("CMT Strategic Limit", "primaryBorrower.cmtStrategicLimit")}
-            {wrapCheckbox("ESG Strategic Limit", "primaryBorrower.esgStrategicLimit")}
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 gap-8">
+            {wrapInput("Borrower Name", "primaryBorrower.borrowerName")}
+            {wrapInput("Group", "primaryBorrower.group")}
+            {wrapInput("Originating Office", "primaryBorrower.originatingOffice")}
+            {wrapInput("Account Classification", "primaryBorrower.accountClassification")}
+            {wrapInput("Customer Since", "counterparty.info.customerSince")}
+            <div className="col-span-full text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] border-b pb-2 mb-4">Leveraged Lending Flags</div>
+            <div className="col-span-full grid grid-cols-3 gap-5">
+              {wrapCheckbox("Leveraged Lending", "primaryBorrower.leveragedLending")}
+              {wrapCheckbox("Regulatory Leveraged", "primaryBorrower.regulatoryLeveragedLoan")}
+              {wrapCheckbox("Leveraged Lending", "primaryBorrower.tdsLeveragedLoan")}
+              {wrapCheckbox("High Leverage (>5.5x)", "primaryBorrower.highLeverageLoan")}
+              {wrapCheckbox("Extreme Leverage (>6.0x)", "primaryBorrower.extremeLeverage")}
+              {wrapCheckbox("Covenant Lite", "primaryBorrower.covenantLite")}
+              {wrapCheckbox("High Risk Account", "primaryBorrower.highRiskAccount")}
+              {wrapCheckbox("Spotlight Account", "primaryBorrower.spotlightAccount")}
+              {wrapCheckbox("CB Credit Standards Exception", "primaryBorrower.creditException")}
+              {wrapCheckbox("Weak Underwriting", "primaryBorrower.weakUnderwriting")}
+              {wrapCheckbox("Euro Infrastructure Sub Limit", "primaryBorrower.euroInfraLimit")}
+              {wrapCheckbox("HRSL Sub Limit", "primaryBorrower.hrslSubLimit")}
+              {wrapCheckbox("CMT Strategic Limit", "primaryBorrower.cmtStrategicLimit")}
+              {wrapCheckbox("ESG Strategic Limit", "primaryBorrower.esgStrategicLimit")}
+            </div>
+            {wrapInput("SEA Score", "primaryBorrower.seaScore")}
+            {wrapTextArea("Additional Information", "primaryBorrower.additionalComments", 6)}
+            <ImageUploadSection path="primaryBorrower.sectionImages" />
           </div>
-          {wrapInput("SEA Score", "primaryBorrower.seaScore")}
-          {wrapTextArea("Additional Information", "primaryBorrower.additionalComments", 6)}
-          <ImageUploadSection path="primaryBorrower.sectionImages" />
+          <FeedbackPanel sectionKey="borrower_details" />
         </div>
       );
     case 'purpose':
       return (
-        <div className="grid grid-cols-2 gap-8">
-          {wrapTextArea("Strategic Business Purpose", "purpose.businessPurpose")}
-          {wrapTextArea("Adjudication Considerations", "purpose.adjudicationConsiderations")}
-          {wrapInput("Annual Review Status", "purpose.annualReviewStatus")}
-          {wrapInput("Sponsor Purchase (Value, Closing)", "purpose.sponsorPurchase")}
-          {wrapInput("Arrangers / Agents", "purpose.arrangers")}
-          {wrapInput("Syndicated Facilities", "purpose.syndicatedFacilities")}
-          {wrapInput("Funding Mix", "purpose.fundingMix")}
-          <div className="col-span-full grid grid-cols-3 gap-5">
-            {wrapCheckbox("New Facilities", "purpose.reviewPurpose.newFacilities")}
-            {wrapCheckbox("Financial Covenants", "purpose.reviewPurpose.financialCovenants")}
-            {wrapCheckbox("Maturity Dates", "purpose.reviewPurpose.maturityDates")}
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 gap-8">
+            {wrapTextArea("Strategic Business Purpose", "purpose.businessPurpose")}
+            {wrapTextArea("Adjudication Considerations", "purpose.adjudicationConsiderations")}
+            {wrapInput("Annual Review Status", "purpose.annualReviewStatus")}
+            {wrapInput("Sponsor Purchase (Value, Closing)", "purpose.sponsorPurchase")}
+            {wrapInput("Arrangers / Agents", "purpose.arrangers")}
+            {wrapInput("Syndicated Facilities", "purpose.syndicatedFacilities")}
+            {wrapInput("Funding Mix", "purpose.fundingMix")}
+            <div className="col-span-full grid grid-cols-3 gap-5">
+              {wrapCheckbox("New Facilities", "purpose.reviewPurpose.newFacilities")}
+              {wrapCheckbox("Financial Covenants", "purpose.reviewPurpose.financialCovenants")}
+              {wrapCheckbox("Maturity Dates", "purpose.reviewPurpose.maturityDates")}
+            </div>
+            {wrapTextArea("Additional Information", "purpose.additionalComments", 6)}
+            <ImageUploadSection path="purpose.sectionImages" />
           </div>
-          {wrapTextArea("Additional Information", "purpose.additionalComments", 6)}
-          <ImageUploadSection path="purpose.sectionImages" />
+          <FeedbackPanel sectionKey="purpose" />
         </div>
       );
     case 'credit_exposure':
       return (
-        <div className="grid grid-cols-3 gap-6">
-          {wrapInput("Requested", "creditPosition.creditRequested", "number")}
-          {wrapInput("Hold Commitment", "creditPosition.holdCommitment")}
-          {wrapInput("Warehouse Line", "creditPosition.warehouseRequest")}
-          {wrapInput("Subgroup", "creditPosition.subgroup")}
-          {wrapInput("Underwriting Commitment", "creditPosition.underwritingCommitment")}
-          {wrapInput("Expected Time to Zero-Hold", "creditPosition.timeToZeroHold")}
-          {wrapTextArea("Exposure Excess Details", "creditPosition.groupExposureStatus")}
-          {wrapTextArea("Additional Information", "creditPosition.additionalComments", 6)}
-          <ImageUploadSection path="creditPosition.sectionImages" />
+        <div className="space-y-8">
+          <div className="grid grid-cols-3 gap-6">
+            {wrapInput("Requested", "creditPosition.creditRequested", "number")}
+            {wrapInput("Hold Commitment", "creditPosition.holdCommitment")}
+            {wrapInput("Warehouse Line", "creditPosition.warehouseRequest")}
+            {wrapInput("Subgroup", "creditPosition.subgroup")}
+            {wrapInput("Underwriting Commitment", "creditPosition.underwritingCommitment")}
+            {wrapInput("Expected Time to Zero-Hold", "creditPosition.timeToZeroHold")}
+            {wrapTextArea("Exposure Excess Details", "creditPosition.groupExposureStatus")}
+            {wrapTextArea("Additional Information", "creditPosition.additionalComments", 6)}
+            <ImageUploadSection path="creditPosition.sectionImages" />
+          </div>
+          <FeedbackPanel sectionKey="credit_exposure" />
         </div>
       );
     case 'financials_raroc':
       return (
         <div className="space-y-10">
-          <div className="bg-tdgreen rounded-3xl p-10 text-white grid grid-cols-3 gap-8 shadow-xl shadow-tdgreen/10">
+          <div className="bg-brandgreen rounded-3xl p-10 text-white grid grid-cols-3 gap-8 shadow-xl shadow-brandgreen/10">
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Economic RAROC %</span>
               <input type="number" className="bg-transparent text-white text-4xl font-black w-full outline-none mt-2" value={getNested(data, 'financialInfo.raroc.economicRaroc')} onChange={e => setNested('financialInfo.raroc.economicRaroc', Number(e.target.value))} />
@@ -378,6 +442,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </div>
           {wrapTextArea("Additional Information", "financialInfo.additionalComments", 6)}
           <ImageUploadSection path="financialInfo.sectionImages" />
+          <FeedbackPanel sectionKey="financials_raroc" />
         </div>
       );
     case 'risk_ratings':
@@ -386,9 +451,9 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <div className="space-y-6">
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight border-b pb-2">Borrower Rating</h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-6">
-              {wrapInput("TD BRR Proposed", "riskAssessment.borrowerRating.proposedBrr")}
-              {wrapInput("TD FRR Proposed", "riskAssessment.borrowerRating.proposedFrr")}
-              {wrapInput("TD BRR Current", "riskAssessment.borrowerRating.currentBrr")}
+              {wrapInput("Borrower Rating Proposed", "riskAssessment.borrowerRating.proposedBrr")}
+              {wrapInput("Facility Rating Proposed", "riskAssessment.borrowerRating.proposedFrr")}
+              {wrapInput("Borrower Rating Current", "riskAssessment.borrowerRating.currentBrr")}
               {wrapInput("Risk Analyst", "riskAssessment.borrowerRating.riskAnalyst")}
               {wrapInput("New RA / Policy", "riskAssessment.borrowerRating.newRaPolicy")}
               {wrapInput("RA / Policy Model", "riskAssessment.borrowerRating.raPolicyModel")}
@@ -416,22 +481,22 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                         const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
                         r[i].issuerRating = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
-                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.seniorUnsecured || ''} onChange={(e) => {
                         const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
                         r[i].seniorUnsecured = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
-                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.outlook || ''} onChange={(e) => {
                         const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
                         r[i].outlook = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
-                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.updatedAt || ''} onChange={(e) => {
                         const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
                         r[i].updatedAt = e.target.value;
                         setNested('riskAssessment.publicRatings', r);
-                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-tdgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -440,6 +505,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </div>
           {wrapTextArea("Additional Information", "riskAssessment.additionalComments", 6)}
           <ImageUploadSection path="riskAssessment.sectionImages" />
+          <FeedbackPanel sectionKey="risk_ratings" />
         </div>
       );
     case 'facility_info':
@@ -458,22 +524,26 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
            </div>
            {wrapTextArea("Additional Information", "facilityDetails.additionalComments", 6)}
            <ImageUploadSection path="facilityDetails.sectionImages" />
+           <FeedbackPanel sectionKey="facility_info" />
         </div>
       );
     case 'documentation_covenants':
       return (
-        <div className="grid grid-cols-2 gap-8">
-          {wrapInput("Agreement Type", "documentation.agreementType")}
-          {wrapInput("Jurisdiction", "documentation.jurisdiction")}
-          {wrapInput("Subordination Risk", "documentation.subordinationRisk")}
-          {wrapTextArea("Financial Covenants", "documentation.financialCovenants")}
-          {wrapTextArea("Protections (JCrew/Serta/Chewy)", "documentation.jCrewProvisions")}
-          {wrapTextArea("Negative Covenants", "documentation.negativeCovenants")}
-          {wrapTextArea("Positive Covenants", "documentation.positiveCovenants")}
-          {wrapTextArea("Reporting Requirements", "documentation.reportingReqs")}
-          {wrapTextArea("Funding conditions", "documentation.fundingConditions")}
-          {wrapTextArea("Additional Information", "documentation.additionalComments", 6)}
-          <ImageUploadSection path="documentation.sectionImages" />
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 gap-8">
+            {wrapInput("Agreement Type", "documentation.agreementType")}
+            {wrapInput("Jurisdiction", "documentation.jurisdiction")}
+            {wrapInput("Subordination Risk", "documentation.subordinationRisk")}
+            {wrapTextArea("Financial Covenants", "documentation.financialCovenants")}
+            {wrapTextArea("Protections (JCrew/Serta/Chewy)", "documentation.jCrewProvisions")}
+            {wrapTextArea("Negative Covenants", "documentation.negativeCovenants")}
+            {wrapTextArea("Positive Covenants", "documentation.positiveCovenants")}
+            {wrapTextArea("Reporting Requirements", "documentation.reportingReqs")}
+            {wrapTextArea("Funding conditions", "documentation.fundingConditions")}
+            {wrapTextArea("Additional Information", "documentation.additionalComments", 6)}
+            <ImageUploadSection path="documentation.sectionImages" />
+          </div>
+          <FeedbackPanel sectionKey="documentation_covenants" />
         </div>
       );
     case 'analysis_narrative':
@@ -510,15 +580,19 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </div>
           {wrapTextArea("Additional Information", "analysis.additionalComments", 6)}
           <ImageUploadSection path="analysis.sectionImages" />
+          <FeedbackPanel sectionKey="analysis_narrative" />
         </div>
       );
     case 'compliance_signoff':
       return (
-        <div className="grid grid-cols-2 gap-8">
-           {wrapInput("Approver", "compliance.signOff.approver")}
-           {wrapInput("Date", "compliance.signOff.date")}
-           {wrapTextArea("Additional Information", "compliance.additionalComments", 6)}
-           <ImageUploadSection path="compliance.sectionImages" />
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 gap-8">
+            {wrapInput("Approver", "compliance.signOff.approver")}
+            {wrapInput("Date", "compliance.signOff.date")}
+            {wrapTextArea("Additional Information", "compliance.additionalComments", 6)}
+            <ImageUploadSection path="compliance.sectionImages" />
+          </div>
+          <FeedbackPanel sectionKey="compliance_signoff" />
         </div>
       );
     case 'source_documents':
@@ -527,7 +601,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
               {files.map(file => (
-                <button key={file.id} onClick={() => setSelectedFile(file)} className={`w-full p-5 rounded-2xl border flex items-center gap-4 transition-all ${selectedFile?.id === file.id ? 'bg-tdgreen border-tdgreen text-white shadow-xl' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+                <button key={file.id} onClick={() => setSelectedFile(file)} className={`w-full p-5 rounded-2xl border flex items-center gap-4 transition-all ${selectedFile?.id === file.id ? 'bg-brandgreen border-brandgreen text-white shadow-xl' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${selectedFile?.id === file.id ? 'bg-white/20' : 'bg-slate-100 text-slate-400'}`}>{file.type.includes('pdf') ? '📕' : '📄'}</div>
                   <div className="text-left flex-1 min-w-0"><p className="font-black truncate text-sm">{file.name}</p><p className="text-[10px] opacity-60 uppercase tracking-widest mt-0.5">{(file.size / 1024 / 1024).toFixed(2)} MB</p></div>
                 </button>
@@ -545,7 +619,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <div className="flex justify-between items-start mb-16 border-b-4 border-slate-900 pb-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="bg-tdgreen text-white p-2 font-black text-2xl">TD</div>
+                <div className="bg-slate-800 text-white p-2 font-black text-2xl">CM</div>
                 <div className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">Credit Management • Private & Confidential</div>
               </div>
               <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">Executive Credit Memo</h1>
@@ -559,11 +633,11 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             </div>
           </div>
 
-          <MemoSection id="A" title="Leveraged Lending Policy, TDS Credit Standards, and other reporting Classification">
+          <MemoSection id="A" title="Leveraged Lending Policy, Credit Standards, and other reporting Classification">
             <div className="grid grid-cols-2 gap-x-16 gap-y-1">
-              <FlagRow label="TDS Corporate Banking Credit Standards Exception" value={data.primaryBorrower?.creditException} />
+              <FlagRow label="Corporate Banking Credit Standards Exception" value={data.primaryBorrower?.creditException} />
               <FlagRow label="Weak Underwriting" value={data.primaryBorrower?.weakUnderwriting} />
-              <FlagRow label="TDS Leveraged Loan" value={data.primaryBorrower?.tdsLeveragedLoan} />
+              <FlagRow label="Leveraged Loan" value={data.primaryBorrower?.tdsLeveragedLoan} />
               <FlagRow label="Regulatory Leveraged Loan" value={data.primaryBorrower?.regulatoryLeveragedLoan} />
               <FlagRow label="5 Rated leveraged Loan with leverage > 5.5x" value={data.primaryBorrower?.highLeverageLoan} />
               <FlagRow label="Sufficient room within Leverage Loan dollar policy limit" value={data.primaryBorrower?.leveragePolicyRoom} />
@@ -577,7 +651,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
               <FlagRow label="Covenant-Lite" value={data.primaryBorrower?.covenantLite} />
               <div className="flex items-center justify-between py-2 border-b border-slate-50">
                  <span className="text-xs font-bold text-slate-600 italic">o SEA score</span>
-                 <span className="text-[10px] font-black text-tdgreen uppercase bg-tdgreen/5 px-3 py-1 rounded-full">{data.primaryBorrower?.seaScore || "Pending"}</span>
+                 <span className="text-[10px] font-black text-brandgreen uppercase bg-brandgreen/5 px-3 py-1 rounded-full">{data.primaryBorrower?.seaScore || "Pending"}</span>
               </div>
             </div>
           </MemoSection>
@@ -632,11 +706,11 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <MemoSection id="D" title="Valuation">
              <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                   <div className="p-5 border-2 border-slate-100 rounded-2xl bg-white shadow-sm hover:border-tdgreen transition-colors">
+                   <div className="p-5 border-2 border-slate-100 rounded-2xl bg-white shadow-sm hover:border-brandgreen transition-colors">
                       <h4 className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Weighted Approach</h4>
                       <p className="text-sm font-black text-slate-800">{data.analysis?.valuation?.approach || "Consolidated Peer Multiples"}</p>
                    </div>
-                   <div className="p-5 border-2 border-slate-100 rounded-2xl bg-white shadow-sm hover:border-tdgreen transition-colors">
+                   <div className="p-5 border-2 border-slate-100 rounded-2xl bg-white shadow-sm hover:border-brandgreen transition-colors">
                       <h4 className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Pro forma reserves & production</h4>
                       <p className="text-sm font-black text-slate-800">{data.analysis?.valuation?.reserves || "Boe / boe/d"}</p>
                    </div>
@@ -664,8 +738,8 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                    <DataRow label="Hold Commitment" value={data.creditPosition?.holdCommitment} />
                    <DataRow label="Group Exposure Status" value={data.creditPosition?.groupExposureStatus} />
                 </div>
-                <div className="p-6 bg-tdgreen/5 border border-tdgreen/10 rounded-sm font-serif">
-                   <h4 className="text-[10px] font-black text-tdgreen uppercase mb-3 tracking-widest">Leveraged Lending & Repayment Analysis</h4>
+                <div className="p-6 bg-brandgreen/5 border border-brandgreen/10 rounded-sm font-serif">
+                   <h4 className="text-[10px] font-black text-brandgreen uppercase mb-3 tracking-widest">Leveraged Lending & Repayment Analysis</h4>
                    <SmartNarrative text={data.facilityDetails?.terms?.repaymentAnalysis} files={files} />
                 </div>
              </div>
@@ -679,7 +753,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
 
           <MemoSection id="G" title="RAROC & Fees">
              <div className="grid grid-cols-3 gap-8">
-                <div className="bg-tdgreen p-6 text-white text-center shadow-lg border-b-4 border-tdgreen-dark">
+                <div className="bg-brandgreen p-6 text-white text-center shadow-lg border-b-4 border-brandgreen-dark">
                    <p className="text-[9px] font-black uppercase opacity-60">Relationship RAROC</p>
                    <p className="text-3xl font-black">{data.financialInfo?.raroc?.relationshipRaroc || 0}%</p>
                 </div>
@@ -711,7 +785,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                    <h4 className="text-[9px] font-black uppercase text-slate-400 mb-2">J.Crew/Serta Provisions</h4>
                    <p className="text-sm font-bold">{data.documentation?.jCrewProvisions}</p>
                 </div>
-                <div className="col-span-full p-6 border-l-4 border-tdgreen bg-slate-50 font-serif">
+                <div className="col-span-full p-6 border-l-4 border-brandgreen bg-slate-50 font-serif">
                    <h4 className="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Covenants (Debt/Cap, Standard Negatives/Positives)</h4>
                    <SmartNarrative text={data.documentation?.financialCovenants} files={files} />
                 </div>
@@ -748,7 +822,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <MemoSection id="K" title="Budget & Sensitivity">
              <div className="grid grid-cols-2 gap-6">
                 <div className="p-6 bg-slate-50 border rounded-sm font-serif">
-                   <h4 className="text-[10px] font-black text-tdgreen uppercase mb-3 tracking-widest">Base Case</h4>
+                   <h4 className="text-[10px] font-black text-brandgreen uppercase mb-3 tracking-widest">Base Case</h4>
                    <SmartNarrative text={data.analysis?.sensitivity?.baseCase} files={files} />
                 </div>
                 <div className="p-6 bg-rose-50 border border-rose-100 rounded-sm font-serif">
@@ -790,14 +864,14 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           </MemoSection>
 
           <MemoSection id="O" title="Managing Director Comments">
-             <div className="bg-tdgreen p-10 text-white rounded-sm shadow-2xl relative overflow-hidden font-serif">
+             <div className="bg-brandgreen p-10 text-white rounded-sm shadow-2xl relative overflow-hidden font-serif">
                 <div className="absolute top-0 right-0 p-4 opacity-10">
                    <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H16.017C14.9124 8 14.017 7.10457 14.017 6V3L21.017 3V15C21.017 18.3137 18.3307 21 15.017 21H14.017ZM3 21L3 18C3 16.8954 3.89543 16 5 16H8C8.55228 16 9 15.5523 9 15V9C9 8.44772 8.55228 8 8 8H5C3.89543 8 3 7.10457 3 6V3L10 3V15C10 18.3137 7.31371 21 4 21H3Z" /></svg>
                 </div>
                 <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 opacity-70">Manager Endorsement</h4>
                 <p className="text-xl font-medium leading-relaxed italic relative z-10">{data.analysis?.justification?.mdComments || "Final approval commentary pending..."}</p>
                 <div className="mt-8 pt-8 border-t border-white/20">
-                   <p className="text-sm font-black uppercase tracking-widest">{data.analysis?.justification?.executivesSupporting || "Senior TDS Leadership"}</p>
+                   <p className="text-sm font-black uppercase tracking-widest">{data.analysis?.justification?.executivesSupporting || "Senior Credit Leadership"}</p>
                    <p className="text-[10px] font-bold opacity-60">Global Banking & Markets</p>
                 </div>
              </div>
@@ -812,7 +886,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
     case 'document_preview':
       return (
         <div className="max-w-4xl mx-auto space-y-12 py-10 print:p-0 relative font-serif">
-          <div className="border-b-8 border-tdgreen pb-10 text-center">
+          <div className="border-b-8 border-brandgreen pb-10 text-center">
             <div className="inline-block px-4 py-2 bg-slate-900 text-white font-black text-xs uppercase mb-4">Confidential Draft</div>
             <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter">Final credit memo initial draft</h1>
             <p className="text-slate-500 font-bold mt-2 text-sm uppercase">Consolidated Lending Profile • Institutional CIB</p>
@@ -834,7 +908,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
               <div className="grid grid-cols-2 gap-x-12">
                  <FlagRow label="Leveraged Lending" value={data.primaryBorrower?.leveragedLending} />
                  <FlagRow label="Regulatory Leveraged" value={data.primaryBorrower?.regulatoryLeveragedLoan} />
-                 <FlagRow label="TDS Leveraged Loan" value={data.primaryBorrower?.tdsLeveragedLoan} />
+                 <FlagRow label="Leveraged Loan" value={data.primaryBorrower?.tdsLeveragedLoan} />
                  <FlagRow label="High Leverage (>5.5x)" value={data.primaryBorrower?.highLeverageLoan} />
                  <FlagRow label="Extreme Leverage (>6.0x)" value={data.primaryBorrower?.extremeLeverage} />
                  <FlagRow label="Covenant-Lite" value={data.primaryBorrower?.covenantLite} />
@@ -898,15 +972,15 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
             <div className="grid grid-cols-4 gap-4 px-6 text-center mb-10">
                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                   <p className="text-[9px] font-black text-slate-400 uppercase">Economic RAROC</p>
-                  <p className="text-xl font-black text-tdgreen">{data.financialInfo?.raroc?.economicRaroc}%</p>
+                  <p className="text-xl font-black text-brandgreen">{data.financialInfo?.raroc?.economicRaroc}%</p>
                </div>
                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                   <p className="text-[9px] font-black text-slate-400 uppercase">Rel. RAROC</p>
-                  <p className="text-xl font-black text-tdgreen">{data.financialInfo?.raroc?.relationshipRaroc}%</p>
+                  <p className="text-xl font-black text-brandgreen">{data.financialInfo?.raroc?.relationshipRaroc}%</p>
                </div>
                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                   <p className="text-[9px] font-black text-slate-400 uppercase">Credit RAROC</p>
-                  <p className="text-xl font-black text-tdgreen">{data.financialInfo?.raroc?.creditOnlyRaroc}%</p>
+                  <p className="text-xl font-black text-brandgreen">{data.financialInfo?.raroc?.creditOnlyRaroc}%</p>
                </div>
                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                   <p className="text-[9px] font-black text-slate-400 uppercase">Economic Cap</p>
@@ -1050,7 +1124,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
              <div className="inline-block px-10 py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.5em] shadow-2xl">
                End of memo draft
              </div>
-             <p className="mt-8 text-slate-400 font-bold text-[10px] uppercase tracking-widest">Maple Digital Audit Trail • CONFIDENTIAL</p>
+             <p className="mt-8 text-slate-400 font-bold text-[10px] uppercase tracking-widest">Digital Audit Trail • CONFIDENTIAL</p>
           </div>
         </div>
       );

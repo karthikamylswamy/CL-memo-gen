@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { DefaultAzureCredential } from "@azure/identity";
-import { CreditMemoData, AiProvider, SourceFile, FieldSource, FieldCandidate } from "../types";
+import { CreditMemoData, AiProvider, SourceFile, FieldSource, FieldCandidate, SectionKey } from "../types";
 
 /**
  * EXPLICIT MODEL CONFIGURATION
@@ -441,4 +441,55 @@ export const chatWithAiAgent = async (params: {
   });
 
   return result.text;
+};
+
+export const updateSectionWithFeedback = async (params: {
+  provider: AiProvider;
+  section: SectionKey;
+  feedback: string;
+  currentData: CreditMemoData;
+  files: SourceFile[];
+}): Promise<Partial<CreditMemoData>> => {
+  const sectionData = params.currentData[params.section] || {};
+  
+  const systemInstruction = `
+    You are an Elite Syndicate Credit Analyst. 
+    The user has provided feedback on the '${params.section}' section of a Credit Memo.
+    Your task is to update the section data based on this feedback.
+    
+    Current Section Data: ${JSON.stringify(sectionData)}
+    User Feedback: "${params.feedback}"
+    
+    CRITICAL: 
+    1. Return ONLY the updated fields for this section in a JSON object.
+    2. Maintain the existing structure of the section.
+    3. Use the provided deal documents (if any) to verify and enrich the content if the feedback suggests it.
+    4. If the feedback is a general instruction (e.g., "make it more concise"), apply it to the relevant narrative fields.
+  `;
+
+  const chatFiles = params.files.slice(0, 5).map(f => ({
+    data: f.dataUrl.split(',')[1],
+    mimeType: f.type,
+    name: f.name
+  }));
+
+  const result = await generateAIResponse({
+    provider: params.provider,
+    prompt: `Update the '${params.section}' section based on the feedback: ${params.feedback}`,
+    files: chatFiles,
+    systemInstruction,
+    usePro: true,
+    jsonSchema: {
+      type: Type.OBJECT,
+      description: `Updated fields for the ${params.section} section`
+    }
+  });
+
+  try {
+    const updatedFields = JSON.parse(result.text);
+    return { [params.section]: { ...sectionData, ...updatedFields } };
+  } catch (e) {
+    console.error("Failed to parse agent update:", result.text);
+    throw new Error("AI failed to provide a valid update. Please try again with more specific feedback.");
+  }
 };

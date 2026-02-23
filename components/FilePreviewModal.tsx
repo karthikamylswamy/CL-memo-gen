@@ -23,7 +23,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
       <div className="relative w-full max-w-6xl h-full bg-white rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="h-16 border-b border-slate-100 flex items-center justify-between px-8 bg-slate-50/50">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-tdgreen text-white flex items-center justify-center text-xl shadow-lg shadow-tdgreen/20">
+            <div className="w-10 h-10 rounded-xl bg-brandgreen text-white flex items-center justify-center text-xl shadow-lg shadow-brandgreen/20">
               {isPdf ? '📕' : isImage ? '🖼️' : '📄'}
             </div>
             <div>
@@ -76,7 +76,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) =>
               <a 
                 href={file.dataUrl} 
                 download={file.name}
-                className="mt-8 px-10 py-4 bg-tdgreen text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-tdgreen/20 hover:scale-105 transition-all"
+                className="mt-8 px-10 py-4 bg-brandgreen text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-brandgreen/20 hover:scale-105 transition-all"
               >
                 Download Document
               </a>

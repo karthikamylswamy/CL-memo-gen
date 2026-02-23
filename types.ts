@@ -259,6 +259,7 @@ export interface CreditMemoData {
     additionalComments: string;
     sectionImages?: SourceFile[];
   };
+  sectionFeedback?: Record<string, string>;
   fieldSources?: Record<string, FieldSource>;
   fieldCandidates?: Record<string, FieldCandidate[]>;
   [key: string]: any;

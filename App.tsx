@@ -8,7 +8,7 @@ import SectionRenderer from './components/SectionRenderer';
 import DocumentDropzone from './components/DocumentDropzone';
 import ChatSidebar from './components/ChatSidebar';
 import FilePreviewModal from './components/FilePreviewModal';
-import { processDocumentWithAgents } from './services/agentService';
+import { processDocumentWithAgents, updateSectionWithFeedback } from './services/agentService';
 import { exportToWord } from './services/exportService';
 import * as db from './services/dbService';
 
@@ -133,6 +133,35 @@ const App: React.FC = () => {
       setData(updates);
     }
   }, [data]);
+
+  const handleSectionFeedback = useCallback(async (section: SectionKey, feedback: string) => {
+    if (!feedback.trim()) return;
+    setIsProcessing(true);
+    try {
+      const updates = await updateSectionWithFeedback({
+        provider: selectedProvider,
+        section,
+        feedback,
+        currentData: data,
+        files: uploadedFiles
+      });
+      handleUpdateData(updates);
+      
+      // Clear feedback for this section
+      setData(prev => ({
+        ...prev,
+        sectionFeedback: {
+          ...(prev.sectionFeedback || {}),
+          [section]: ''
+        }
+      }));
+    } catch (error) {
+      console.error("Feedback processing error:", error);
+      alert("Failed to update section based on feedback.");
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [data, selectedProvider, uploadedFiles, handleUpdateData]);
 
   const handleFileUpload = async (files: File[]) => {
     setIsProcessing(true);
@@ -280,10 +309,10 @@ const App: React.FC = () => {
             className={`ml-6 p-4 rounded-2xl flex items-center gap-3 transition-all font-black text-xs uppercase tracking-widest border-2 ${
               isChatOpen 
                 ? 'bg-slate-900 text-white border-slate-900 shadow-xl' 
-                : 'bg-white text-slate-700 border-slate-200 hover:border-tdgreen/50 hover:bg-tdgreen-light/20 shadow-sm'
+                : 'bg-white text-slate-700 border-slate-200 hover:border-brandgreen/50 hover:bg-brandgreen-light/20 shadow-sm'
             }`}
           >
-            <div className={`w-2 h-2 rounded-full ${isChatOpen ? 'bg-tdgreen' : 'bg-slate-300'} animate-pulse`}></div>
+            <div className={`w-2 h-2 rounded-full ${isChatOpen ? 'bg-brandgreen' : 'bg-slate-300'} animate-pulse`}></div>
             {isChatOpen ? 'Assistant' : 'Ask AI Agent'}
           </button>
         </div>
@@ -310,6 +339,8 @@ const App: React.FC = () => {
                   data={data} 
                   files={uploadedFiles}
                   onChange={handleUpdateData}
+                  onFeedbackSubmit={handleSectionFeedback}
+                  isProcessing={isProcessing}
                 />
               </div>
             </div>
@@ -318,7 +349,7 @@ const App: React.FC = () => {
               {(activeSection === 'document_preview' || activeSection === 'executive_credit_memo') && (
                 <button 
                   onClick={() => exportToWord(data, uploadedFiles)}
-                  className="flex items-center gap-3 px-8 py-3 bg-tdgreen text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-tdgreen/20 hover:scale-105 active:scale-95 transition-all"
+                  className="flex items-center gap-3 px-8 py-3 bg-brandgreen text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-brandgreen/20 hover:scale-105 active:scale-95 transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                   Export Word Memo

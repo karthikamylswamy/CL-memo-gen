@@ -67,8 +67,8 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
     <head><meta charset='utf-8'><title>Executive Credit Memo</title>
     <style>
       body { font-family: 'Arial', 'Helvetica', sans-serif; line-height: 1.5; color: #333; font-size: 10pt; }
-      .header-area { border-bottom: 3pt solid #008a00; padding-bottom: 10pt; margin-bottom: 20pt; }
-      .bank-tag { background: #008a00; color: #fff; padding: 3pt 6pt; font-weight: bold; font-size: 14pt; display: inline-block; }
+      .header-area { border-bottom: 3pt solid #1e293b; padding-bottom: 10pt; margin-bottom: 20pt; }
+      .bank-tag { background: #1e293b; color: #fff; padding: 3pt 6pt; font-weight: bold; font-size: 14pt; display: inline-block; }
       .confidential { color: #94a3b8; font-weight: bold; text-transform: uppercase; letter-spacing: 2pt; font-size: 8pt; margin-top: 5pt; }
       h1 { font-size: 24pt; font-weight: 900; margin: 10pt 0 0 0; text-transform: uppercase; color: #1e293b; }
       h2 { font-size: 12pt; font-weight: bold; text-transform: uppercase; background: #1e293b; color: #fff; padding: 4pt 8pt; margin-top: 20pt; }
@@ -106,7 +106,7 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
 
   const content = `
     <div class="header-area">
-      <div class="bank-tag">TD</div>
+      <div class="bank-tag">CM</div>
       <div class="confidential">Credit Management • Private & Confidential</div>
       <h1>Executive Credit Memo</h1>
       <div style="font-size: 9pt; font-weight: bold; margin-top: 5pt;">
@@ -116,9 +116,9 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
 
     <h2>A. Leveraged Lending Policy & Reporting Classification</h2>
     <div style="margin: 10pt 0;">
-      ${renderFlag("TDS Corporate Banking Credit Standards Exception", data.primaryBorrower?.creditException)}
+      ${renderFlag("Corporate Banking Credit Standards Exception", data.primaryBorrower?.creditException)}
       ${renderFlag("Weak Underwriting", data.primaryBorrower?.weakUnderwriting)}
-      ${renderFlag("TDS Leveraged Loan", data.primaryBorrower?.tdsLeveragedLoan)}
+      ${renderFlag("Leveraged Loan", data.primaryBorrower?.tdsLeveragedLoan)}
       ${renderFlag("Regulatory Leveraged Loan", data.primaryBorrower?.regulatoryLeveragedLoan)}
       ${renderFlag("5 Rated leveraged Loan with leverage > 5.5x", data.primaryBorrower?.highLeverageLoan)}
       ${renderFlag("Sufficient room within Leverage Loan dollar policy limit", data.primaryBorrower?.leveragePolicyRoom)}
@@ -153,7 +153,7 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
       ${processNarrativeForWord(data.analysis?.overview?.sponsorOverview || "", files)}
     </div>
     <div style="font-size: 8pt; color: #64748b; font-style: italic; border: 1px dashed #cbd5e1; padding: 5pt; text-align: center;">
-      Existing relationship discussion: ${data.counterparty?.info?.customerSince || "TD: New"}
+      Existing relationship discussion: ${data.counterparty?.info?.customerSince || "New"}
     </div>
 
     <h2>C. Request Overview</h2>
@@ -306,14 +306,14 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
         "${data.analysis?.justification?.mdComments || "Strategic opportunity; elevated risks mitigated by scale, assets, plan, and team. Recommendation: approve, subject to stated conditions and monitoring."}"
       </div>
       <div style="margin-top: 20pt; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10pt;">
-        <div style="font-weight: bold; font-size: 10pt;">${data.analysis?.justification?.executivesSupporting || "Senior TDS Leadership"}</div>
+        <div style="font-weight: bold; font-size: 10pt;">${data.analysis?.justification?.executivesSupporting || "Senior Credit Leadership"}</div>
         <div style="font-size: 8pt; opacity: 0.8;">Global Banking & Markets</div>
       </div>
     </div>
 
     <div style="margin-top: 40pt; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20pt;">
       <div style="font-size: 8pt; color: #cbd5e1; font-weight: bold; letter-spacing: 4pt; text-transform: uppercase;">End of Consolidated Memo</div>
-      <div style="font-size: 7pt; color: #cbd5e1; margin-top: 5pt;">Generated via Maple AI • TD Internal Use Only</div>
+      <div style="font-size: 7pt; color: #cbd5e1; margin-top: 5pt;">Generated via AI Builder • Internal Use Only</div>
     </div>
   `;
 
