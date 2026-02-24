@@ -103,15 +103,21 @@ const getNested = (obj: any, path: string) => path.split('.').reduce((o, i) => (
 
 const SourceBadge: React.FC<{ source?: FieldSource, hasConflicts?: boolean }> = ({ source, hasConflicts }) => {
   if (!source && !hasConflicts) return null;
+  const isResolved = source?.resolved;
+  const showRef = source && (!hasConflicts || isResolved);
+  
   return (
     <div className="group relative inline-flex ml-2 items-center gap-1">
-      {source && (
-        <div className="px-2 py-0.5 bg-brandgreen/10 rounded-full text-brandgreen border border-brandgreen/20 flex items-center gap-1.5 transition-all hover:bg-brandgreen/20 cursor-help">
+      {showRef && (
+        <div 
+          className="px-2 py-0.5 bg-brandgreen/10 rounded-full text-brandgreen border border-brandgreen/20 flex items-center gap-1.5 transition-all hover:bg-brandgreen/20 cursor-help"
+          title={`Source: ${source.filename}`}
+        >
           <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           <span className="text-[8px] font-black uppercase tracking-tighter">Ref: {source.pageNumber}</span>
         </div>
       )}
-      {hasConflicts && (
+      {hasConflicts && !isResolved && (
         <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.5)]" title="Extraction conflict. Review in Assistant pane."></div>
       )}
     </div>
@@ -355,7 +361,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
       return (
         <div className="space-y-8">
           <div className="grid grid-cols-2 gap-8">
-            {wrapInput("Borrower Name", "primaryBorrower.borrowerName")}
+            {wrapInput("Company Name", "primaryBorrower.companyName")}
             {wrapInput("Group", "primaryBorrower.group")}
             {wrapInput("Originating Office", "primaryBorrower.originatingOffice")}
             {wrapInput("Account Classification", "primaryBorrower.accountClassification")}
@@ -947,7 +953,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
           <section>
             <PreviewHeader title="1. Borrower Details" />
             <div className="grid grid-cols-2 gap-x-12 px-6">
-              <DataRow label="Legal Name" value={data.primaryBorrower?.borrowerName} path="primaryBorrower.borrowerName" />
+              <DataRow label="Company Name" value={data.primaryBorrower?.companyName} path="primaryBorrower.companyName" />
               <DataRow label="Group" value={data.primaryBorrower?.group} path="primaryBorrower.group" />
               <DataRow label="Originating Office" value={data.primaryBorrower?.originatingOffice} path="primaryBorrower.originatingOffice" />
               <DataRow label="Classification" value={data.primaryBorrower?.accountClassification} path="primaryBorrower.accountClassification" />

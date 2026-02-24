@@ -57,7 +57,7 @@ export interface FieldCandidate {
 
 export interface CreditMemoData {
   primaryBorrower: {
-    borrowerName: string;
+    companyName: string;
     originatingOffice: string;
     group: string;
     accountClassification: string;

@@ -256,10 +256,11 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
       
       MANDATORY AUDIT TRAIL RULES:
       1. For EVERY value you populate in 'extractedData', you MUST provide a corresponding entry in 'allFindings'.
-      2. 'fieldPath' in 'allFindings' MUST be the exact dot-notation path to the field (e.g., "primaryBorrower.borrowerName").
+      2. 'fieldPath' in 'allFindings' MUST be the exact dot-notation path to the field (e.g., "primaryBorrower.companyName").
       3. 'sourceFile' MUST be exactly "${file.name}".
       4. 'pageNumber' MUST be the specific page where that specific piece of information was found (e.g. "Page 1").
       5. Extraction count is critical. Do not ignore minor fields like "Originating Office" or "Jurisdiction".
+      6. For 'companyName', ALWAYS extract the full legal name of the entity as stated in the legal documents (e.g., "Apple Inc." instead of "Apple").
     `;
 
     const result = await generateAIResponse({
@@ -273,7 +274,7 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
           extractedData: { 
             type: Type.OBJECT,
             properties: {
-              primaryBorrower: { type: Type.OBJECT, properties: { borrowerName: { type: Type.STRING }, originatingOffice: { type: Type.STRING }, group: { type: Type.STRING }, accountClassification: { type: Type.STRING }, leveragedLending: { type: Type.BOOLEAN }, covenantLite: { type: Type.BOOLEAN }, strategicLoan: { type: Type.BOOLEAN }, weakUnderwriting: { type: Type.BOOLEAN }, seaScore: { type: Type.STRING } } },
+              primaryBorrower: { type: Type.OBJECT, properties: { companyName: { type: Type.STRING }, originatingOffice: { type: Type.STRING }, group: { type: Type.STRING }, accountClassification: { type: Type.STRING }, leveragedLending: { type: Type.BOOLEAN }, covenantLite: { type: Type.BOOLEAN }, strategicLoan: { type: Type.BOOLEAN }, weakUnderwriting: { type: Type.BOOLEAN }, seaScore: { type: Type.STRING } } },
               purpose: { type: Type.OBJECT, properties: { businessPurpose: { type: Type.STRING }, adjudicationConsiderations: { type: Type.STRING }, sponsorPurchase: { type: Type.STRING }, arrangers: { type: Type.STRING }, syndicatedFacilities: { type: Type.STRING }, fundingMix: { type: Type.STRING } } },
               creditPosition: { type: Type.OBJECT, properties: { presentPosition: { type: Type.NUMBER }, creditRequested: { type: Type.NUMBER }, previousAuthorization: { type: Type.NUMBER }, tradingLine: { type: Type.NUMBER }, committedOverOneYear: { type: Type.NUMBER }, warehouseRequest: { type: Type.STRING }, holdCommitment: { type: Type.STRING }, subgroup: { type: Type.STRING }, groupExposureStatus: { type: Type.STRING } } },
               riskAssessment: {
@@ -494,7 +495,7 @@ export const updateSectionWithFeedback = async (params: {
     CRITICAL: 
     1. Return a JSON object with two properties: 'updatedData' and 'changesSummary'.
     2. 'updatedData' should be a Partial<CreditMemoData> containing ONLY the fields that were actually changed or added.
-    3. 'changesSummary' should be an array of strings describing what was updated (e.g., ["Updated Borrower Name to 'X'", "Refined company description for conciseness"]).
+    3. 'changesSummary' should be an array of strings describing what was updated (e.g., ["Updated Company Name to 'X'", "Refined company description for conciseness"]).
     4. Maintain the existing structure of the Credit Memo.
     5. Use the provided deal documents (if any) to verify and enrich the content if the feedback suggests it.
     6. If no changes are needed or feedback is irrelevant, return empty updatedData and a message in changesSummary.

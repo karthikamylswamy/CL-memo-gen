@@ -18,7 +18,7 @@ export const SECTIONS: Section[] = [
 
 export const getInitialData = (): CreditMemoData => ({
   primaryBorrower: {
-    borrowerName: '',
+    companyName: '',
     originatingOffice: '',
     group: '',
     accountClassification: '',

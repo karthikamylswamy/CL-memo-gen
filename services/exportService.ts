@@ -322,7 +322,7 @@ export const exportToWord = (data: CreditMemoData, files: SourceFile[] = []) => 
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `Executive_Credit_Memo_${data.primaryBorrower?.borrowerName || 'Draft'}_${new Date().toISOString().split('T')[0]}.doc`;
+  link.download = `Executive_Credit_Memo_${data.primaryBorrower?.companyName || 'Draft'}_${new Date().toISOString().split('T')[0]}.doc`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
