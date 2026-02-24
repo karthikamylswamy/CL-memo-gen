@@ -186,9 +186,10 @@ const App: React.FC = () => {
           [section]: ''
         }
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Feedback processing error:", error);
-      alert("Failed to update section based on feedback.");
+      const errorMessage = error?.message || "Failed to update section based on feedback.";
+      alert(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -257,9 +258,10 @@ const App: React.FC = () => {
       } as CreditMemoData);
       
       setExtractedCount(Object.keys(updatedFieldSources).length);
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI batch extraction error:", error);
-      alert("Extraction failed. Document processing may have timed out or reached model limits.");
+      const errorMessage = error?.message || "Extraction failed. Document processing may have timed out or reached model limits.";
+      alert(errorMessage);
     } finally {
       setIsProcessing(false);
     }

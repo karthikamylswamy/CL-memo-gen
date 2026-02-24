@@ -124,8 +124,13 @@ async function generateAIResponse(params: {
       config
     });
 
+    const responseText = (response.text || '').trim();
+    if (!responseText) {
+      throw new Error("The AI returned an empty response. This may be due to safety filters or model limitations.");
+    }
+
     return {
-      text: (response.text || '').trim(),
+      text: responseText,
       raw: response
     };
 
@@ -200,8 +205,21 @@ async function generateAIResponse(params: {
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || "OpenAI Engine request failed.");
+      const status = response.status;
+      let message = "OpenAI Engine request failed.";
+      try {
+        const err = await response.json();
+        message = err.error?.message || message;
+      } catch (e) {
+        message = response.statusText || message;
+      }
+      
+      if (status === 429) throw new Error(`Rate limit reached (429): ${message}`);
+      if (status === 401) throw new Error(`Authentication failed (401): ${message}`);
+      if (status === 403) throw new Error(`Access forbidden (403): ${message}`);
+      if (status === 404) throw new Error(`Model or endpoint not found (404): ${message}`);
+      
+      throw new Error(`OpenAI Error (${status}): ${message}`);
     }
 
     const result = await response.json();
@@ -212,6 +230,44 @@ async function generateAIResponse(params: {
   }
 }
 
+const getFriendlyErrorMessage = (error: any): string => {
+  const msg = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
+  
+  if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("rate limit") || msg.includes("limit reached")) {
+    return "The AI model is currently at its capacity or you have reached your rate limit. Please wait a moment and try again.";
+  }
+  
+  if (msg.includes("credit") || msg.includes("balance") || msg.includes("quota") || msg.includes("billing")) {
+    return "The AI service account has insufficient credits or has exceeded its quota. Please check your billing settings.";
+  }
+  
+  if (msg.includes("API key") || msg.includes("unauthorized") || msg.includes("401") || msg.includes("invalid_api_key")) {
+    return "Authentication failed. Please verify that your AI Provider API keys are correctly configured in the environment.";
+  }
+  
+  if (msg.includes("JSON") || msg.includes("parse") || msg.includes("valid JSON")) {
+    return "The AI was unable to extract structured data from this document. The content might be too complex or the format is unsupported.";
+  }
+  
+  if (msg.includes("safety") || msg.includes("filter") || msg.includes("blocked")) {
+    return "The AI response was blocked by safety filters. This can happen if the document contains sensitive or restricted content.";
+  }
+
+  if (msg.includes("empty response")) {
+    return "The AI returned an empty response. Please try again or check if the document content is readable.";
+  }
+  
+  if (msg.includes("network") || msg.includes("fetch") || msg.includes("timeout") || msg.includes("Failed to fetch")) {
+    return "A network error occurred while connecting to the AI service. Please check your internet connection and try again.";
+  }
+
+  if (msg.includes("not found") || msg.includes("404") || msg.includes("model_not_found")) {
+    return "The requested AI model was not found or is currently unavailable.";
+  }
+
+  return `AI Error: ${msg}`;
+};
+
 async function callWithRetry(apiCall: () => Promise<any>, retries = MAX_RETRIES): Promise<any> {
   let lastError: any;
   for (let i = 0; i <= retries; i++) {
@@ -220,17 +276,26 @@ async function callWithRetry(apiCall: () => Promise<any>, retries = MAX_RETRIES)
     } catch (error: any) {
       lastError = error;
       const errorMsg = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
-      if (errorMsg.includes("429") || errorMsg.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("limit")) {
-        if (i < retries) {
-          const delay = INITIAL_RETRY_DELAY * Math.pow(2, i);
-          await sleep(delay);
-          continue;
-        }
+      
+      // Check for retryable errors
+      const isRetryable = errorMsg.includes("429") || 
+                          errorMsg.includes("RESOURCE_EXHAUSTED") || 
+                          errorMsg.includes("limit") || 
+                          errorMsg.includes("timeout") ||
+                          errorMsg.includes("503") ||
+                          errorMsg.includes("500");
+
+      if (isRetryable && i < retries) {
+        const delay = INITIAL_RETRY_DELAY * Math.pow(2, i);
+        await sleep(delay);
+        continue;
       }
-      throw error;
+      
+      // If not retryable or retries exhausted, throw friendly error
+      throw new Error(getFriendlyErrorMessage(error));
     }
   }
-  throw lastError;
+  throw new Error(getFriendlyErrorMessage(lastError));
 }
 
 export const processDocumentWithAgents = async (files: File[], provider: AiProvider): Promise<{ data: Partial<CreditMemoData>, fieldSources: Record<string, FieldSource>, fieldCandidates: Record<string, FieldCandidate[]> }> => {
@@ -359,7 +424,7 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
       return parsed;
     } catch (e) {
       console.error("JSON Parsing Error:", result.text);
-      throw new Error("The AI response was not valid JSON.");
+      throw new Error("The AI was unable to extract structured data from this document. The content might be too complex or the format is unsupported.");
     }
   };
 
@@ -464,15 +529,18 @@ export const chatWithAiAgent = async (params: {
     name: f.name
   }));
 
-  const result = await generateAIResponse({
-    provider: params.provider,
-    prompt: params.message,
-    files: chatFiles,
-    systemInstruction,
-    usePro: true
-  });
+  const chatCall = async () => {
+    const result = await generateAIResponse({
+      provider: params.provider,
+      prompt: params.message,
+      files: chatFiles,
+      systemInstruction,
+      usePro: true
+    });
+    return result.text;
+  };
 
-  return result.text;
+  return await callWithRetry(chatCall);
 };
 
 export const updateSectionWithFeedback = async (params: {
@@ -507,40 +575,44 @@ export const updateSectionWithFeedback = async (params: {
     name: f.name
   }));
 
-  const result = await generateAIResponse({
-    provider: params.provider,
-    prompt: `Update the Credit Memo based on the feedback provided while in the '${params.section}' section: ${params.feedback}`,
-    files: chatFiles,
-    systemInstruction,
-    usePro: true,
-    jsonSchema: {
-      type: Type.OBJECT,
-      properties: {
-        updatedData: { 
-          type: Type.OBJECT,
-          description: "The modified fields for the Credit Memo"
+  const feedbackCall = async () => {
+    const result = await generateAIResponse({
+      provider: params.provider,
+      prompt: `Update the Credit Memo based on the feedback provided while in the '${params.section}' section: ${params.feedback}`,
+      files: chatFiles,
+      systemInstruction,
+      usePro: true,
+      jsonSchema: {
+        type: Type.OBJECT,
+        properties: {
+          updatedData: { 
+            type: Type.OBJECT,
+            description: "The modified fields for the Credit Memo"
+          },
+          changesSummary: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "List of specific changes made"
+          }
         },
-        changesSummary: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-          description: "List of specific changes made"
-        }
-      },
-      required: ["updatedData", "changesSummary"]
-    }
-  });
+        required: ["updatedData", "changesSummary"]
+      }
+    });
 
-  try {
-    const parsed = JSON.parse(result.text);
-    const updatedData = parsed.updatedData || {};
-    const changes = parsed.changesSummary || [];
-    
-    return { 
-      updatedData,
-      changes
-    };
-  } catch (e) {
-    console.error("Failed to parse agent update:", result.text);
-    throw new Error("AI failed to provide a valid update. Please try again with more specific feedback.");
-  }
+    try {
+      const parsed = JSON.parse(result.text);
+      const updatedData = parsed.updatedData || {};
+      const changes = parsed.changesSummary || [];
+      
+      return { 
+        updatedData,
+        changes
+      };
+    } catch (e) {
+      console.error("Failed to parse agent update:", result.text);
+      throw new Error("The AI was unable to format the update correctly. Please try again with more specific feedback.");
+    }
+  };
+
+  return await callWithRetry(feedbackCall);
 };

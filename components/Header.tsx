@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { AiProvider } from '../types';
-import { getAzureOpenAiKey } from '../services/agentService';
+import { getAzureOpenAiKey, getStandardOpenAiKey, getAzureToken } from '../services/agentService';
 
 interface HeaderProps {
   isProcessing: boolean;
@@ -21,8 +21,8 @@ const Header: React.FC<HeaderProps> = ({
   hasConflicts
 }) => {
   const isKeyMissing = selectedProvider === 'openai' 
-    ? !getAzureOpenAiKey() 
-    : !process.env.API_KEY;
+    ? !(getAzureOpenAiKey() || getStandardOpenAiKey() || getAzureToken()) 
+    : !(process.env.GEMINI_API_KEY || process.env.API_KEY);
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-40">
