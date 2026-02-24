@@ -471,41 +471,89 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Agency</th>
-                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Issuer Rating</th>
-                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Senior Unsecured Notes</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Issuer</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Sr. Secured</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Sr. Unsecured</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Subordinated</th>
                     <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Outlook</th>
-                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">LastUpdated time</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Updated</th>
+                    <th className="p-4 text-[10px] font-black uppercase text-slate-500 tracking-widest w-16"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : []).map((rating, i) => (
                     <tr key={i} className="border-b border-slate-100 last:border-0">
-                      <td className="p-4 font-black text-slate-800 text-sm">{rating.agency}</td>
+                      <td className="p-2">
+                        <input 
+                          type="text" 
+                          value={rating.agency || ''} 
+                          onChange={(e) => {
+                            const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
+                            r[i] = { ...r[i], agency: e.target.value };
+                            setNested('riskAssessment.publicRatings', r);
+                          }} 
+                          placeholder="Agency"
+                          className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" 
+                        />
+                      </td>
                       <td className="p-2"><input type="text" value={rating.issuerRating || ''} onChange={(e) => {
                         const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
-                        r[i].issuerRating = e.target.value;
+                        r[i] = { ...r[i], issuerRating: e.target.value };
+                        setNested('riskAssessment.publicRatings', r);
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      <td className="p-2"><input type="text" value={rating.seniorSecured || ''} onChange={(e) => {
+                        const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
+                        r[i] = { ...r[i], seniorSecured: e.target.value };
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.seniorUnsecured || ''} onChange={(e) => {
                         const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
-                        r[i].seniorUnsecured = e.target.value;
+                        r[i] = { ...r[i], seniorUnsecured: e.target.value };
+                        setNested('riskAssessment.publicRatings', r);
+                      }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      <td className="p-2"><input type="text" value={rating.subordinated || ''} onChange={(e) => {
+                        const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
+                        r[i] = { ...r[i], subordinated: e.target.value };
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.outlook || ''} onChange={(e) => {
                         const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
-                        r[i].outlook = e.target.value;
+                        r[i] = { ...r[i], outlook: e.target.value };
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
                       <td className="p-2"><input type="text" value={rating.updatedAt || ''} onChange={(e) => {
                         const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
-                        r[i].updatedAt = e.target.value;
+                        r[i] = { ...r[i], updatedAt: e.target.value };
                         setNested('riskAssessment.publicRatings', r);
                       }} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 focus:border-brandgreen focus:bg-white rounded-lg outline-none font-bold text-sm" /></td>
+                      <td className="p-2 text-center">
+                        <button 
+                          onClick={() => {
+                            const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
+                            r.splice(i, 1);
+                            setNested('riskAssessment.publicRatings', r);
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            <button 
+              onClick={() => {
+                const r = [...(Array.isArray(data.riskAssessment?.publicRatings) ? data.riskAssessment.publicRatings : [])];
+                r.push({ agency: '', issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' });
+                setNested('riskAssessment.publicRatings', r);
+              }}
+              className="mt-4 flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+              Add Rating Row
+            </button>
           </div>
           {wrapTextArea("Additional Information", "riskAssessment.additionalComments", 6)}
           <ImageUploadSection path="riskAssessment.sectionImages" />
@@ -1020,7 +1068,9 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                         <tr>
                           <th className="p-3 border-b">Agency</th>
                           <th className="p-3 border-b">Issuer</th>
-                          <th className="p-3 border-b">Senior Unsecured</th>
+                          <th className="p-3 border-b">Sr. Secured</th>
+                          <th className="p-3 border-b">Sr. Unsecured</th>
+                          <th className="p-3 border-b">Subordinated</th>
                           <th className="p-3 border-b">Outlook</th>
                           <th className="p-3 border-b">Updated</th>
                         </tr>
@@ -1030,7 +1080,9 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, data, files 
                           <tr key={i} className="border-b last:border-0">
                             <td className="p-3 text-slate-900">{rating.agency}</td>
                             <td className="p-3 text-slate-700">{rating.issuerRating || "N/A"}</td>
+                            <td className="p-3 text-slate-700">{rating.seniorSecured || "N/A"}</td>
                             <td className="p-3 text-slate-700">{rating.seniorUnsecured || "N/A"}</td>
+                            <td className="p-3 text-slate-700">{rating.subordinated || "N/A"}</td>
                             <td className="p-3 text-slate-700">{rating.outlook || "N/A"}</td>
                             <td className="p-3 text-slate-500">{rating.updatedAt || "N/A"}</td>
                           </tr>

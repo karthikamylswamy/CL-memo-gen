@@ -50,14 +50,29 @@ export const getStandardOpenAiKey = (): string | null => {
  * Array-safe deep merge to prevent converting arrays to objects
  */
 const deepMerge = (target: any, source: any): any => {
-  if (Array.isArray(source)) return source;
+  if (Array.isArray(source)) {
+    if (Array.isArray(target) && source.length > 0 && typeof source[0] === 'object') {
+      const identityKeys = ['agency', 'entity', 'name', 'id'];
+      const identityKey = identityKeys.find(k => k in source[0]);
+      if (identityKey) {
+        const merged = [...target];
+        source.forEach(item => {
+          const idx = merged.findIndex(m => m && item && String(m[identityKey]).toLowerCase() === String(item[identityKey]).toLowerCase());
+          if (idx > -1) merged[idx] = deepMerge(merged[idx], item);
+          else merged.push(item);
+        });
+        return merged;
+      }
+    }
+    return source;
+  }
   if (!source || typeof source !== 'object') return source;
   
-  const output = Array.isArray(target) ? [...target] : { ...target };
+  const output = (target && typeof target === 'object' && !Array.isArray(target)) ? { ...target } : {};
   
   Object.keys(source).forEach(key => {
-    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-      output[key] = deepMerge(target[key] || {}, source[key]);
+    if (source[key] && typeof source[key] === 'object') {
+      output[key] = deepMerge(target ? target[key] : undefined, source[key]);
     } else {
       output[key] = source[key];
     }
@@ -237,6 +252,8 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
       Act as an Elite Syndicate Credit Analyst. Perform an EXHAUSTIVE extraction on document: ${file.name}.
       Scan EVERY sentence. Populate as many fields as possible in the 'extractedData' structure.
       
+      For 'publicRatings', extract ALL available agency ratings and debt-specific ratings (e.g., Senior Secured, Senior Unsecured, Subordinated, etc.) found in the document. Do not limit yourself to just Moody's, S&P, or Fitch if others are present.
+      
       MANDATORY AUDIT TRAIL RULES:
       1. For EVERY value you populate in 'extractedData', you MUST provide a corresponding entry in 'allFindings'.
       2. 'fieldPath' in 'allFindings' MUST be the exact dot-notation path to the field (e.g., "primaryBorrower.borrowerName").
@@ -263,7 +280,21 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
                 type: Type.OBJECT,
                 properties: {
                   borrowerRating: { type: Type.OBJECT, properties: { proposedBrr: { type: Type.STRING }, proposedFrr: { type: Type.STRING }, currentBrr: { type: Type.STRING }, riskAnalyst: { type: Type.STRING }, raPolicyModel: { type: Type.STRING } } },
-                  publicRatings: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { agency: { type: Type.STRING }, issuerRating: { type: Type.STRING }, seniorUnsecured: { type: Type.STRING }, outlook: { type: Type.STRING }, updatedAt: { type: Type.STRING } } } },
+                  publicRatings: { 
+                    type: Type.ARRAY, 
+                    items: { 
+                      type: Type.OBJECT, 
+                      properties: { 
+                        agency: { type: Type.STRING }, 
+                        issuerRating: { type: Type.STRING }, 
+                        seniorSecured: { type: Type.STRING },
+                        seniorUnsecured: { type: Type.STRING }, 
+                        subordinated: { type: Type.STRING },
+                        outlook: { type: Type.STRING }, 
+                        updatedAt: { type: Type.STRING } 
+                      } 
+                    } 
+                  },
                   details: { type: Type.OBJECT, properties: { tdSic: { type: Type.STRING }, industryRisk: { type: Type.STRING }, ltv: { type: Type.NUMBER }, security: { type: Type.STRING }, businessRisk: { type: Type.STRING }, financialRisk: { type: Type.STRING }, envRisk: { type: Type.STRING }, countryRisk: { type: Type.STRING }, governanceRisk: { type: Type.STRING } } }
                 }
               },
@@ -450,23 +481,23 @@ export const updateSectionWithFeedback = async (params: {
   currentData: CreditMemoData;
   files: SourceFile[];
 }): Promise<{ updatedData: Partial<CreditMemoData>, changes: string[] }> => {
-  const sectionData = params.currentData[params.section] || {};
-  
   const systemInstruction = `
     You are an Elite Syndicate Credit Analyst. 
-    The user has provided feedback on the '${params.section}' section of a Credit Memo.
-    Your task is to update the section data based on this feedback.
+    The user is currently reviewing the '${params.section}' section of a Credit Memo and has provided feedback.
+    Your task is to update the Credit Memo data based on this feedback.
     
-    Current Section Data: ${JSON.stringify(sectionData)}
+    While you should focus on the '${params.section}' section, you are authorized to update ANY field in the Credit Memo if the feedback is applicable to other areas.
+    
+    Full Credit Memo Data: ${JSON.stringify(params.currentData)}
     User Feedback: "${params.feedback}"
     
     CRITICAL: 
-    1. Return a JSON object with two properties: 'updatedFields' and 'changesSummary'.
-    2. 'updatedFields' should contain ONLY the fields that were actually changed or added in this section.
+    1. Return a JSON object with two properties: 'updatedData' and 'changesSummary'.
+    2. 'updatedData' should be a Partial<CreditMemoData> containing ONLY the fields that were actually changed or added.
     3. 'changesSummary' should be an array of strings describing what was updated (e.g., ["Updated Borrower Name to 'X'", "Refined company description for conciseness"]).
-    4. Maintain the existing structure of the section.
+    4. Maintain the existing structure of the Credit Memo.
     5. Use the provided deal documents (if any) to verify and enrich the content if the feedback suggests it.
-    6. If no changes are needed or feedback is irrelevant, return empty updatedFields and a message in changesSummary.
+    6. If no changes are needed or feedback is irrelevant, return empty updatedData and a message in changesSummary.
   `;
 
   const chatFiles = params.files.slice(0, 5).map(f => ({
@@ -477,16 +508,16 @@ export const updateSectionWithFeedback = async (params: {
 
   const result = await generateAIResponse({
     provider: params.provider,
-    prompt: `Update the '${params.section}' section based on the feedback: ${params.feedback}`,
+    prompt: `Update the Credit Memo based on the feedback provided while in the '${params.section}' section: ${params.feedback}`,
     files: chatFiles,
     systemInstruction,
     usePro: true,
     jsonSchema: {
       type: Type.OBJECT,
       properties: {
-        updatedFields: { 
+        updatedData: { 
           type: Type.OBJECT,
-          description: "The modified fields for this section"
+          description: "The modified fields for the Credit Memo"
         },
         changesSummary: {
           type: Type.ARRAY,
@@ -494,17 +525,17 @@ export const updateSectionWithFeedback = async (params: {
           description: "List of specific changes made"
         }
       },
-      required: ["updatedFields", "changesSummary"]
+      required: ["updatedData", "changesSummary"]
     }
   });
 
   try {
     const parsed = JSON.parse(result.text);
-    const updatedFields = parsed.updatedFields || {};
+    const updatedData = parsed.updatedData || {};
     const changes = parsed.changesSummary || [];
     
     return { 
-      updatedData: { [params.section]: updatedFields },
+      updatedData,
       changes
     };
   } catch (e) {

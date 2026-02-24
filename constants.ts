@@ -103,9 +103,9 @@ export const getInitialData = (): CreditMemoData => ({
       raPolicyModel: ''
     },
     publicRatings: [
-      { agency: "Moody's", issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' },
-      { agency: 'S&P', issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' },
-      { agency: 'Fitch', issuerRating: '', seniorUnsecured: '', outlook: '', updatedAt: '' }
+      { agency: "Moody's", issuerRating: '', seniorSecured: '', seniorUnsecured: '', subordinated: '', outlook: '', updatedAt: '' },
+      { agency: 'S&P', issuerRating: '', seniorSecured: '', seniorUnsecured: '', subordinated: '', outlook: '', updatedAt: '' },
+      { agency: 'Fitch', issuerRating: '', seniorSecured: '', seniorUnsecured: '', subordinated: '', outlook: '', updatedAt: '' }
     ],
     details: {
       tdSic: '', industryRisk: '', security: '', ltv: 0, businessRisk: '',

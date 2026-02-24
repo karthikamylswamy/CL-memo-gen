@@ -16,14 +16,29 @@ import * as db from './services/dbService';
  * Array-safe deep merge to prevent converting arrays to objects
  */
 const deepMerge = (target: any, source: any): any => {
-  if (Array.isArray(source)) return source;
+  if (Array.isArray(source)) {
+    if (Array.isArray(target) && source.length > 0 && typeof source[0] === 'object') {
+      const identityKeys = ['agency', 'entity', 'name', 'id'];
+      const identityKey = identityKeys.find(k => k in source[0]);
+      if (identityKey) {
+        const merged = [...target];
+        source.forEach(item => {
+          const idx = merged.findIndex(m => m && item && String(m[identityKey]).toLowerCase() === String(item[identityKey]).toLowerCase());
+          if (idx > -1) merged[idx] = deepMerge(merged[idx], item);
+          else merged.push(item);
+        });
+        return merged;
+      }
+    }
+    return source;
+  }
   if (!source || typeof source !== 'object') return source;
   
-  const output = Array.isArray(target) ? [...target] : { ...target };
+  const output = (target && typeof target === 'object' && !Array.isArray(target)) ? { ...target } : {};
   
   Object.keys(source).forEach(key => {
-    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-      output[key] = deepMerge(target[key] || {}, source[key]);
+    if (source[key] && typeof source[key] === 'object') {
+      output[key] = deepMerge(target ? target[key] : undefined, source[key]);
     } else {
       output[key] = source[key];
     }
@@ -51,13 +66,13 @@ const App: React.FC = () => {
   const [selectedProvider, setSelectedProvider] = useState<AiProvider>('google');
   const [notifications, setNotifications] = useState<{ id: string; title: string; items: string[] }[]>([]);
 
-  const addNotification = (title: string, items: string[]) => {
+  const addNotification = useCallback((title: string, items: string[]) => {
     const id = Math.random().toString(36).substr(2, 9);
     setNotifications(prev => [...prev, { id, title, items }]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 8000);
-  };
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -177,7 +192,7 @@ const App: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [data, selectedProvider, uploadedFiles, handleUpdateData]);
+  }, [data, selectedProvider, uploadedFiles, handleUpdateData, addNotification]);
 
   const handleFileUpload = async (files: File[]) => {
     setIsProcessing(true);
@@ -232,36 +247,6 @@ const App: React.FC = () => {
             ...updatedFieldSources[path],
             resolved: (wasPreviouslyFilled || !batchSource.resolved) ? false : true
           };
-        }
-      });
-
-      // Agency ratings auto-resolution
-      Object.keys(updatedFieldCandidates).forEach(path => {
-        if (path.includes('publicRatings')) {
-          const candidates = updatedFieldCandidates[path];
-          if (candidates && candidates.length > 1) {
-            let maxInfo = -1;
-            let bestIdx = 0;
-            candidates.forEach((c, idx) => {
-              const infoSize = JSON.stringify(c.value).length;
-              if (infoSize > maxInfo) {
-                maxInfo = infoSize;
-                bestIdx = idx;
-              }
-            });
-            updatedFieldSources[path] = {
-              ...updatedFieldSources[path],
-              selectedIndices: [bestIdx],
-              resolved: true
-            };
-            
-            const keys = path.split('.');
-            let current: any = mergedData;
-            for (let i = 0; i < keys.length - 1; i++) {
-              current = current[keys[i]];
-            }
-            current[keys[keys.length - 1]] = candidates[bestIdx].value;
-          }
         }
       });
 

@@ -17,7 +17,9 @@ export interface ChatMessage {
 export interface PublicRating {
   agency: string;
   issuerRating: string;
+  seniorSecured?: string;
   seniorUnsecured: string;
+  subordinated?: string;
   outlook: string;
   updatedAt: string;
 }
