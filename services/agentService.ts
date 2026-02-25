@@ -25,7 +25,8 @@ const initPdfJs = async () => {
  */
 const GOOGLE_FLASH_MODEL = 'gemini-3-flash-preview';
 const GOOGLE_PRO_MODEL = 'gemini-3-pro-preview';
-const OPENAI_MODEL_ID = 'gpt.5.2'; 
+const OPENAI_FLASH_MODEL = 'gpt-4o-mini';
+const OPENAI_PRO_MODEL = 'gpt.5.2'; 
 
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000;
@@ -135,6 +136,49 @@ async function convertPdfToImages(base64: string): Promise<{data: string, mimeTy
 }
 
 /**
+ * Converts Gemini-style schema (using Type enum) to OpenAI-compatible JSON schema
+ */
+const convertGeminiToOpenAiSchema = (schema: any): any => {
+  if (!schema) return null;
+
+  const typeMap: Record<string, string> = {
+    [Type.OBJECT]: 'object',
+    [Type.ARRAY]: 'array',
+    [Type.STRING]: 'string',
+    [Type.NUMBER]: 'number',
+    [Type.INTEGER]: 'integer',
+    [Type.BOOLEAN]: 'boolean',
+  };
+
+  const newSchema: any = {
+    type: typeMap[schema.type] || schema.type.toLowerCase(),
+  };
+
+  if (schema.description) newSchema.description = schema.description;
+
+  if (schema.type === Type.OBJECT) {
+    newSchema.properties = {};
+    const required: string[] = [];
+    
+    if (schema.properties) {
+      Object.keys(schema.properties).forEach(key => {
+        newSchema.properties[key] = convertGeminiToOpenAiSchema(schema.properties[key]);
+        required.push(key); // OpenAI Strict mode requires all properties to be in 'required'
+      });
+    }
+    
+    newSchema.required = required;
+    newSchema.additionalProperties = false; // Required for OpenAI Strict mode
+  } else if (schema.type === Type.ARRAY) {
+    if (schema.items) {
+      newSchema.items = convertGeminiToOpenAiSchema(schema.items);
+    }
+  }
+
+  return newSchema;
+};
+
+/**
  * Provider-agnostic AI request wrapper
  */
 async function generateAIResponse(params: {
@@ -205,13 +249,14 @@ async function generateAIResponse(params: {
       }
     }
 
+    const modelId = params.usePro ? OPENAI_PRO_MODEL : OPENAI_FLASH_MODEL;
     let url: string;
     let headers: Record<string, string> = { "Content-Type": "application/json" };
-    let body: any = { model: OPENAI_MODEL_ID, temperature: 0.1, max_tokens: 4096 };
+    let body: any = { model: modelId, temperature: 0.1, max_tokens: 4096 };
 
     if (azureToken && azureEndpoint) {
       const apiVersion = getAzureOpenAiVersion();
-      url = `${azureEndpoint.replace(/\/$/, '')}/openai/deployments/${OPENAI_MODEL_ID}/chat/completions?api-version=${apiVersion}`;
+      url = `${azureEndpoint.replace(/\/$/, '')}/openai/deployments/${modelId}/chat/completions?api-version=${apiVersion}`;
       headers["Authorization"] = `Bearer ${azureToken}`;
       delete body.model; 
     } else if (standardKey) {
@@ -219,7 +264,7 @@ async function generateAIResponse(params: {
       headers["Authorization"] = `Bearer ${standardKey}`;
     } else if (azureEndpoint && azureKey) {
       const apiVersion = getAzureOpenAiVersion();
-      url = `${azureEndpoint.replace(/\/$/, '')}/openai/deployments/${OPENAI_MODEL_ID}/chat/completions?api-version=${apiVersion}`;
+      url = `${azureEndpoint.replace(/\/$/, '')}/openai/deployments/${modelId}/chat/completions?api-version=${apiVersion}`;
       headers["api-key"] = azureKey;
       delete body.model;
     } else {
@@ -233,8 +278,14 @@ async function generateAIResponse(params: {
 
     let prompt = params.prompt;
     if (params.jsonSchema) {
-      prompt += `\n\nCRITICAL: Return the response as a valid JSON object matching this schema: ${JSON.stringify(params.jsonSchema)}. Do not include markdown formatting or explanations outside the JSON.`;
-      body.response_format = { type: "json_object" };
+      body.response_format = { 
+        type: "json_schema",
+        json_schema: {
+          name: "extraction_result",
+          strict: true,
+          schema: convertGeminiToOpenAiSchema(params.jsonSchema)
+        }
+      };
     }
 
     const userContent: any[] = [{ type: "text", text: prompt }];
