@@ -9,9 +9,8 @@ const initPdfJs = async () => {
   if (pdfjsLib) return pdfjsLib;
   try {
     const pdfjs = await import('pdfjs-dist');
-    // @ts-ignore
-    const pdfWorker = await import('pdfjs-dist/build/pdf.worker.mjs');
-    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker.default;
+    // Use a CDN for the worker to avoid Vite path resolution issues
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs`;
     pdfjsLib = pdfjs;
     return pdfjsLib;
   } catch (e) {
