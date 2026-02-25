@@ -3,6 +3,23 @@ import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { DefaultAzureCredential } from "@azure/identity";
 import { CreditMemoData, AiProvider, SourceFile, FieldSource, FieldCandidate, SectionKey } from "../types";
 
+// PDF.js for OpenAI PDF support
+let pdfjsLib: any = null;
+const initPdfJs = async () => {
+  if (pdfjsLib) return pdfjsLib;
+  try {
+    const pdfjs = await import('pdfjs-dist');
+    // @ts-ignore
+    const pdfWorker = await import('pdfjs-dist/build/pdf.worker.mjs');
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker.default;
+    pdfjsLib = pdfjs;
+    return pdfjsLib;
+  } catch (e) {
+    console.error("Failed to load PDF.js", e);
+    return null;
+  }
+};
+
 /**
  * EXPLICIT MODEL CONFIGURATION
  */
@@ -79,6 +96,43 @@ const deepMerge = (target: any, source: any): any => {
   });
   return output;
 };
+
+async function convertPdfToImages(base64: string): Promise<{data: string, mimeType: string}[]> {
+  const lib = await initPdfJs();
+  if (!lib) return [];
+
+  try {
+    const binary = atob(base64);
+    const uint8Array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      uint8Array[i] = binary.charCodeAt(i);
+    }
+
+    const loadingTask = lib.getDocument({ data: uint8Array });
+    const pdf = await loadingTask.promise;
+    const numPages = Math.min(pdf.numPages, 5); // Process first 5 pages
+    const images: {data: string, mimeType: string}[] = [];
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) continue;
+
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      await page.render({ canvasContext: context, viewport }).promise;
+      const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+      images.push({ data: imageData, mimeType: 'image/jpeg' });
+    }
+    return images;
+  } catch (error) {
+    console.error("PDF to Image conversion failed:", error);
+    return [];
+  }
+}
 
 /**
  * Provider-agnostic AI request wrapper
@@ -185,24 +239,28 @@ async function generateAIResponse(params: {
 
     const userContent: any[] = [{ type: "text", text: prompt }];
     if (params.files) {
-      params.files.forEach(f => {
+      for (const f of params.files) {
         if (f.mimeType.startsWith('image/')) {
           userContent.push({
             type: "image_url",
             image_url: { url: `data:${f.mimeType};base64,${f.data}` }
           });
         } else if (f.mimeType === 'application/pdf') {
-          // Passing PDF directly for models that support native PDF modality (e.g. gpt.5.2)
-          // Based on error message, it expects a 'file' property
-          userContent.push({
-            type: "file",
-            file: {
-              data: f.data,
-              mime_type: f.mimeType
-            }
+          // Re-implementing PDF to image conversion as the API requires file_id for native PDF modality
+          const pdfImages = await convertPdfToImages(f.data);
+          pdfImages.forEach(img => {
+            userContent.push({
+              type: "image_url",
+              image_url: { url: `data:${img.mimeType};base64,${img.data}` }
+            });
           });
+          
+          if (pdfImages.length === 0) {
+            prompt += `\n\n(Note: A document named "${f.name || 'document'}" was uploaded but could not be converted to images for visual analysis.)`;
+            userContent[0].text = prompt;
+          }
         }
-      });
+      }
     }
 
     messages.push({ role: "user", content: userContent });
