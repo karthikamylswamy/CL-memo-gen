@@ -8,7 +8,7 @@ import { CreditMemoData, AiProvider, SourceFile, FieldSource, FieldCandidate, Se
  */
 const GOOGLE_FLASH_MODEL = 'gemini-3-flash-preview';
 const GOOGLE_PRO_MODEL = 'gemini-3-pro-preview';
-const OPENAI_MODEL_ID = 'gpt-4o'; 
+const OPENAI_MODEL_ID = 'gpt.5.2'; 
 
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 2000;
@@ -192,10 +192,14 @@ async function generateAIResponse(params: {
             image_url: { url: `data:${f.mimeType};base64,${f.data}` }
           });
         } else if (f.mimeType === 'application/pdf') {
-          // OpenAI standard API doesn't support PDF directly in chat completions.
-          // We add a note to the prompt if a PDF was provided but couldn't be sent as an image.
-          prompt += `\n\n(Note: A document named "${f.name || 'document'}" was uploaded but OpenAI vision models primarily support images. Please analyze based on available context.)`;
-          userContent[0].text = prompt;
+          // Passing PDF directly for models that support native PDF modality (e.g. gpt.5.2)
+          userContent.push({
+            type: "file",
+            file_data: {
+              data: f.data,
+              mime_type: f.mimeType
+            }
+          });
         }
       });
     }
@@ -419,7 +423,9 @@ export const processDocumentWithAgents = async (files: File[], provider: AiProvi
     });
 
     try {
-      const parsed = JSON.parse(result.text);
+      // Clean JSON in case the model included markdown blocks
+      const cleanedText = result.text.replace(/```json\n?/, '').replace(/```\n?$/, '').trim();
+      const parsed = JSON.parse(cleanedText);
       if (parsed.allFindings) {
         parsed.allFindings = parsed.allFindings.map((f: any) => ({
           ...f,
