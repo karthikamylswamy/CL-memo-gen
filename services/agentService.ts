@@ -153,7 +153,7 @@ async function generateAIResponse(params: {
 
     let url: string;
     let headers: Record<string, string> = { "Content-Type": "application/json" };
-    let body: any = { model: OPENAI_MODEL_ID, temperature: 0.1 };
+    let body: any = { model: OPENAI_MODEL_ID, temperature: 0.1, max_tokens: 4096 };
 
     if (azureToken && azureEndpoint) {
       const apiVersion = getAzureOpenAiVersion();
@@ -179,7 +179,7 @@ async function generateAIResponse(params: {
 
     let prompt = params.prompt;
     if (params.jsonSchema) {
-      prompt += "\n\nCRITICAL: Return the response as a valid JSON object matching the requested schema. Do not include markdown formatting or explanations outside the JSON.";
+      prompt += `\n\nCRITICAL: Return the response as a valid JSON object matching this schema: ${JSON.stringify(params.jsonSchema)}. Do not include markdown formatting or explanations outside the JSON.`;
       body.response_format = { type: "json_object" };
     }
 
@@ -191,6 +191,11 @@ async function generateAIResponse(params: {
             type: "image_url",
             image_url: { url: `data:${f.mimeType};base64,${f.data}` }
           });
+        } else if (f.mimeType === 'application/pdf') {
+          // OpenAI standard API doesn't support PDF directly in chat completions.
+          // We add a note to the prompt if a PDF was provided but couldn't be sent as an image.
+          prompt += `\n\n(Note: A document named "${f.name || 'document'}" was uploaded but OpenAI vision models primarily support images. Please analyze based on available context.)`;
+          userContent[0].text = prompt;
         }
       });
     }
