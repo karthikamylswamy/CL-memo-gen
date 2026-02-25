@@ -193,9 +193,10 @@ async function generateAIResponse(params: {
           });
         } else if (f.mimeType === 'application/pdf') {
           // Passing PDF directly for models that support native PDF modality (e.g. gpt.5.2)
+          // Based on error message, it expects a 'file' property
           userContent.push({
             type: "file",
-            file_data: {
+            file: {
               data: f.data,
               mime_type: f.mimeType
             }
